@@ -1,25 +1,41 @@
 <!DOCTYPE HTML>
 <html>
   <head>
-  <?php include '../../header.php';?>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/moutain-icon.png" type="image/x-icon"/>
   </head>
   <body>
-      <?php include '../../navbar.php';?>
-      <div id="projects">
-        <h1 class="centerText">Volume Comparison Tool</h1>
-        <hr>
-        <h2>Description</h2>
-        <p>Vital's application features many volume algoritms. For example, if you are looking at a scan of the chest, you could run an algorithm to segment out the heart, since that's the part you are currently interested in viewing. For the developers that work on those algorithms, they want to know when they come out with a new version of the algorithm, how it differs from the old one. The tool they had to do this comparison was over a decade old, using OpenGL 1. I redid the whole thing to use OpenGL 4, have a user interface, support much larger volumes, and added features to further enhance the comparison.</p>
-        <h2>Tools Used</h2>
+    <div class="navbar">
+      <nav>
         <ul>
-          <li>OpenGL for the rendering</li>
-          <li>Nanogui for the windowing and UI</li>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
         </ul>
-        <h2>Features</h2>
-        <ul>
-          <li>Interactive volume comparison of volumes up to around 10GB in size</li>
-          <li>User interface for exploring the volumes and their differences</li>
-        </ul>
-      </div>
-    </body>
+      </nav>
+    </div>
+    <div id="projects">
+      <h1 class="centerText">Volume Comparison Tool</h1>
+      <hr>
+      <h2>Description</h2>
+      <p>Vital's application features many volume algoritms. For example, if you are looking at a scan of the chest, you could run an algorithm to segment out the heart, since that's the part you are currently interested in viewing. For the developers that work on those algorithms, they want to know when they come out with a new version of the algorithm, how it differs from the old one. The tool they had to do this comparison was over a decade old, using OpenGL 1. I redid the whole thing to use OpenGL 4, have a user interface, support much larger volumes, and added features to further enhance the comparison.</p>
+      <h2>Tools Used</h2>
+      <ul>
+        <li>OpenGL for the rendering</li>
+        <li>Nanogui for the windowing and UI</li>
+      </ul>
+      <h2>Features</h2>
+      <ul>
+        <li>Interactive volume comparison of volumes up to around 10GB in size</li>
+        <li>User interface for exploring the volumes and their differences</li>
+      </ul>
+    </div>
+  </body>
 </html>

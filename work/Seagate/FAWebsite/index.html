@@ -1,35 +1,51 @@
 <!DOCTYPE HTML>
 <html>
   <head>
-  <?php include '../../header.php';?>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/moutain-icon.png" type="image/x-icon"/>
   </head>
   <body>
-      <?php include '../../navbar.php';?>
-      <div id="projects">
-        <h1 class="centerText">Failure Analysis Website</h1>
-        <hr>
-        <h2>Description</h2>
-        <p>This was a website for other teams inside of Seagate to make analysis requests to my group. This website had been built by an intern the previous semester, but it needed updating. There wasn't really any styling, a few things were broken, and they wanted more functionality. I set up a coulpe meetings where I got the requirements from a couple different teams, and then spent the first half of the summer implementing them. See below for descriptions of the features I updated/added.</p>
-        <h2>Difficulties I had</h2>
-        <p>I had never done any website programming before this. So, to suddenly have to edit Django, HTML, CSS, and Javascript code, as well as Ansible files, was a lot for me to get used to. I had a mentor who I definitely asked many many questions to, but most of my learning was just from thousands of Google searches and looking at past Stack Overflow answers. It took a while for me to get it all wrapped around my head, but by the end of the summer I was the expert on anything related to that website.</p>
-        <h2>Tools Used</h2>
+    <div class="navbar">
+      <nav>
         <ul>
-          <li>Django for the website</li>
-          <li>Ansible to update the server hosting the website</li>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
         </ul>
-        <h2>Portions I Updated</h2>
-        <ul>
-          <li>Added styling and color for the whole website</li>
-          <li>For the tables that holded requests, I added extra search features</li>
-          <li>Fixed a long standing bug where nobody could be added as an admin to the website</li>
-          <li>Organization in general. The project was a bit of a hurried mess by the time I got there</li>
-        </ul>
-        <h2>Portions I Added From Scratch</h2>
-        <ul>
-          <li>Added Javascript code ontop of the Datatables library to implement frozen columns and scrolling</li>
-          <li>Created essentially a forum for people to post technical tips that they had discovered in the lab. They used to have this with Lotus Notes, but they lost it when they switched away from Lotus Notes years ago</li>
-          <li>Created a tool to add large batches of people to the website without having to manually do a 5 step process for each person</li>
-        </ul>
-      </div>
-    </body>
+      </nav>
+    </div>
+    <div id="projects">
+      <h1 class="centerText">Failure Analysis Website</h1>
+      <hr>
+      <h2>Description</h2>
+      <p>This was a website for other teams inside of Seagate to make analysis requests to my group. This website had been built by an intern the previous semester, but it needed updating. There wasn't really any styling, a few things were broken, and they wanted more functionality. I set up a coulpe meetings where I got the requirements from a couple different teams, and then spent the first half of the summer implementing them. See below for descriptions of the features I updated/added.</p>
+      <h2>Difficulties I had</h2>
+      <p>I had never done any website programming before this. So, to suddenly have to edit Django, HTML, CSS, and Javascript code, as well as Ansible files, was a lot for me to get used to. I had a mentor who I definitely asked many many questions to, but most of my learning was just from thousands of Google searches and looking at past Stack Overflow answers. It took a while for me to get it all wrapped around my head, but by the end of the summer I was the expert on anything related to that website.</p>
+      <h2>Tools Used</h2>
+      <ul>
+        <li>Django for the website</li>
+        <li>Ansible to update the server hosting the website</li>
+      </ul>
+      <h2>Portions I Updated</h2>
+      <ul>
+        <li>Added styling and color for the whole website</li>
+        <li>For the tables that holded requests, I added extra search features</li>
+        <li>Fixed a long standing bug where nobody could be added as an admin to the website</li>
+        <li>Organization in general. The project was a bit of a hurried mess by the time I got there</li>
+      </ul>
+      <h2>Portions I Added From Scratch</h2>
+      <ul>
+        <li>Added Javascript code ontop of the Datatables library to implement frozen columns and scrolling</li>
+        <li>Created essentially a forum for people to post technical tips that they had discovered in the lab. They used to have this with Lotus Notes, but they lost it when they switched away from Lotus Notes years ago</li>
+        <li>Created a tool to add large batches of people to the website without having to manually do a 5 step process for each person</li>
+      </ul>
+    </div>
+  </body>
 </html>
