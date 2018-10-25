@@ -84,10 +84,11 @@
       <h4>Audio Output</h4>
       <p>In the audio output callback, the next "chunk size" bytes (probably 2048) are processed. Each audio clip performs its own convolution, constructing an impulse response function for each frame based on its position, and the current position of the user/listener. All the sound from every audio clip is mixed, then sent to SDL for playback on the system speakers. The mix for each clip is calculated by a simple multiplication `a = g*v`, where `a` is the output amplitude, `g` is the audio clip's gain, and `v` is the unmixed amplitude. After the output amplitude for each clip is calculated, then the clips are summed together. Clipping (truncating values outside the range -1 to 1) is performed, which results in the final mix that the user hears for that audio frame. Each audio clip's gain can be individually adjusted, giving the user control of the audio manager as a "virtual mixer".</p>
 
-      <!--<h2>Videos</h2>
-        <figcaption>Video showcasing sound propagation, using a pre-recorded clip,
-          and live audio. Notice how the sound changes from scene to scene.</figcaption>
-      -->
+      <h2>Videos</h2>
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/ME9yYIng5e4" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <p>Video showcasing sound propagation, using a pre-recorded clip, and live audio. Notice how the sound changes from scene to scene.</p>
+
+      <br>
       <h2>Images:</h2>
       <div class="centerText">
         <img class="capWidth" src="wall.jpg">
@@ -102,6 +103,6 @@
         <img class="capWidth" src="living_room.jpg">
         <p>A living room environment</p>
         <hr>
-    </div>
+      </div>
   </body>
 </html>
