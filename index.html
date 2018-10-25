@@ -1,1 +1,48 @@
-Hello World
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <script src="/scripts/spline_editor.js"></script>
+    <link rel="icon" href="/images/moutain-icon.png" type="image/x-icon"/>
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+        <ul>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
+        </ul>
+      </nav>
+    </div>
+    <div id="canvasDiv" style>
+      <canvas id="canvas" width="1000" height="600"></canvas>
+      <div id="canvasDescription">
+        <h3 class="centerText">Spline Editor</h3>
+        <p class="centerText">The curves above are made of sets of points, connected by creating a Catmull-Rom spline. In draw mode, click to add points to the current selected spline. In edit mode, the control points become visible, and you can move them individually and delete points.</p>
+        <h4>General Controls</h4>
+        <ul>
+          <li><strong>S</strong>: Switch between draw mode and edit mode</li>
+          <li><strong>C</strong>: Clear the canvas</li>
+        </ul>
+        <h4>Draw Mode Controls</h4>
+        <ul>
+          <li><strong>Left Click</strong>: Add a new point to the end of the current selected spline</li>
+          <li><strong>N</strong>: The next point added will be the first on a new spline</li>
+        </ul>
+        <h4>Edit Mode Controls</h4>
+        <ul>
+          <li><strong>Left Click and Hold on a Point</strong>: Grab a point to move around</li>
+          <li><strong>D</strong>: Delete the point that is currently being grabbed</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
