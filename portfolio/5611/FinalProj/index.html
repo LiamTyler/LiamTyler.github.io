@@ -1,0 +1,77 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/moutain-icon.png" type="image/x-icon"/>
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+        <ul>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
+        </ul>
+      </nav>
+    </div>
+    <div id="projects">
+      <h1 class="centerText">Particle Systems</h1>
+      <hr>
+      <h2>Group Members</h2>
+      <ul>
+        <li>Liam Tyler</li>
+        <li><a href="https://bridger-herman.github.io/">Bridger Herman</a></li>
+      </ul>
+      <h2>Description</h2>
+      <p>The goal of this project was to create a real-time, interactive sound propagation simulation. More specifically, we wanted to allow a user to walk through a scene with several sound sources listen to how the sound changes in real-time. We also wanted the user to be able to interactively input sound as the program was running, by plugging in a phone or keyboard for example. The motivation was to be able to allow musicians to use the system to practice performing in virtual concert venues from the comfort of their homes, or to allow groups of musicians to explore listening spaces without having to pay for additional rehearsal space.</p>
+
+      <h2>Features</h2>
+      <ul>
+        <li>Real-time, 3D rendering and user interaction</li>
+        <li>Play wav files</li>
+        <li>Stream user microphone/external device audio</li>
+        <li>Audio mixing</li>
+        <li>Dynamic construction of impulse response (IR) function based on user's location</li>
+        <li>Real-time convolution using Fast Fourier Transform</li>
+        <li>Real-time sound ray tracing</li>
+      </ul>
+      <h2>Controls</h2>
+      <ul>
+        <li><strong>WASD/Mouse:</strong> Camera control</li>
+        <li><strong>p:</strong> Pause/play sound clip</li>
+        <li><strong>r:</strong> Start/stop real-time audio streaming</li>
+        <li><strong>Left/right arrow keys</strong> Change sound scene</li>
+        <li><strong>Your microphone </strong>(or an external audio device): Stream
+          sound to propagate in a virtual environment, in real-time</li>
+      </ul>
+
+      <h2>Difficulties</h2>
+      <p></p>
+
+      <h2>Tools Used</h2>
+      <ul>
+        <li>OpenGL for the rendering</li>
+        <li>SDL2 for the window management and user interaction</li>
+        <li>GLM for the vectors and matrices</li>
+        <li>OpenMP for parallelizing the particle updating</li>
+      </ul>
+      <h2>Implementation Details</h2>
+      <p>Our system in general worked as following every frame:</p>
+      <h2>Videos</h2>
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/bIydh2O3wi4" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <h2>Images:</h2>
+      <div class="centerText">
+        <img class="capWidth" src="all_particles.jpg">
+        <p>All particle systems (except fireworks) emitting at once</p>
+        <hr>
+      </div>
+    </div>
+  </body>
+</html>
