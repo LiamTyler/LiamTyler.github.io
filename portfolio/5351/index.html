@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon"/>
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+        <ul>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
+        </ul>
+      </nav>
+    </div>
+    <div id="projects">
+      <h1 class="centerText">Particle Systems</h1>
+      <hr>
+      <h2>Description</h2>
+      <p>The goal of this project was to create a  </p>
+      <h2>Code</h2>
+      <p>Code from this project can be found in <a href="https://github.com/LiamTyler/realtime-cuda-raytracer">this GitHub repo</a>. The code is written in C++ and was built on top of my game engine <a href="">Progression</a> to help with things like windowing, input handling, and scene loading.</p>
+
+      <h2>Features</h2>
+      <ul>
+        <li>Real-time, 3D rendering and user interaction</li>
+        <li>Play wav files</li>
+        <li>Stream user microphone/external device audio</li>
+        <li>Audio mixing</li>
+        <li>Dynamic construction of impulse response (IR) function based on user's location</li>
+        <li>Real-time convolution using Fast Fourier Transform</li>
+        <li>Real-time sound ray tracing</li>
+      </ul>
+      <h2>Controls</h2>
+      <ul>
+        <li><strong>WASD/Mouse:</strong> Camera control</li>
+        <li><strong>p:</strong> Pause/play sound clip</li>
+        <li><strong>r:</strong> Start/stop real-time audio streaming</li>
+        <li><strong>Left/right arrow keys</strong> Change sound scene</li>
+      </ul>
+
+      <h2>Difficulties</h2>
+      <p>By far, the most difficult part about this project was working with audio. The only interface that SDL provides for audio is low-level, and it comes along with all the difficulties and mistakes that low-level programming can have. The first struggle with audio was value overflow. By default, SDL audio uses 16 bit unsigned integers. However, this is generally unacceptable for mixing, because signals are added together which can easily lead to amplitudes with magnitudes greater than 32767. After a great deal of messing around with data types, we found that 32 bit floating-point audio was the way to go. Once this hurdle was crossed, we were able to get some sound playing fairly easily most of the time, but debugging incorrect (too fast, too slow, choppy, laggy, garbage) sound proved to be a whole other issue.</p>
+
+      <h2>Implementation Details</h2>
+
+      <h2>Videos</h2>
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/ME9yYIng5e4" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <p>A short demo of moving through the scene in real time.</p>
+
+      <br>
+      <h2>Images:</h2>
+      <div class="centerText">
+        <img class="capWidth" src="dragon.png">
+        <p>Close up of the refractive dragon model</p>
+        <hr>
+        <img class="capWidth" src="all_side.png">
+        <p>A scene with multiple objects in it, with varying materials</p>
+        <hr>
+        <img class="capWidth" src="red_buddha.png">
+        <p>Close up of the Buddha model with over one million triangles</p>
+        <hr>
+        <img class="capWidth" src="teapot_and_plane.png">
+        <p>Reflective plane with a diffuse red teapot</p>
+        <hr>
+      </div>
+  </body>
+</html>
