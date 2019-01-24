@@ -1,0 +1,90 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon"/>
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+        <ul>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
+        </ul>
+      </nav>
+    </div>
+    <div id="projects">
+      <h1 class="centerText">Progression</h1>
+      <hr>
+      <h2>Description</h2>
+      <p>Progression is a game engine I have been working on mostly since Fall of 2018. It is a 3D game engine written in C++ for both Linux and Windows. I'm mostly building it because I think game engines are super cool and want to learn what goes into them. What better way to learn that to build one myself? It has a lot of features that are listed below, but some of the biggest problems I have spent time on are: engine design, rendering pipelines, and resource optimization. A lot of my time on this has been thinking on how such a (eventually) large project should be designed, and debating the trade offs between speed and ease of use/implementation. I've also spend quite a bit of time exploring the differences between forward rendering, deferred rendering, deferred with light volumes, and tiled-deferred rendering. Finally, i've tried to optimize resource loading, and create a manager that makes it easy to access resources without duplication. I hope to keep adding to this engine as time goes on.</p>
+
+      <h2>Motivation</h2>
+      <p>For a long time I thought I wanted to make video games. After I took a few graphics courses though, I started to realize that what I was more passionate about was the technology that goes into games, not creating the games themselves. Every year games do more and look better, while still keeping real time frame rates. I thought that this was really interesting, and wanted to learn how it happens myself. Since I already really liked C++, I thought the best way for me to learn how would be to make a game engine. I don't have a game in mind while creating this, but I am putting a lot of time into thinking about how it should be designed to help make games. While it's something I only have time to work on in small pieces, I hope to keep extending it and using it to learn new things about graphics, game engines, and C++.</p>
+
+      <h2>Code</h2>
+      <p>Code from this project can be found in <a href="https://github.com/LiamTyler/Progression">this GitHub repo</a></p>
+
+      <h2>Features</h2>
+      <ul>
+        <li>3D rendering of models with Blinn-Phong shading</li>
+        <li>Configurable rendering pipeline: can toggle between forward and tiled-deferred rendering</li>
+        <li>A basic entity-component architecture</li>
+        <li>Resource management of: models, textures, materials, shaders, and skyboxes</li>
+        <li>Input handler</li>
+        <li>Scene loading from text files</li>
+        <li>Basic positional audio through OpenAL</li>
+        <li>Custom model format for optimized load times</li>
+        <li>OBJ loading</li>
+        <li>Directional and point lights supported</li>
+        <li>Skybox support</li>
+        <li>Image loading and texturing for: jpeg, png, bmp, tga</li>
+        <li>Logging system</li>
+        <li>Single window management</li>
+      </ul>
+
+      <h2>Upcoming Features</h2>
+      <ul>
+          <li>Shadows</li>
+          <li>PBR</li>
+          <li>Actually making the audio engine easier to use</li>
+          <li>Parent/child heirarchy</li>
+          <li>More robust HDR/tone mapping</li>
+          <li>Basic GUI with Dear ImGui</li>
+      </ul>
+
+      <h2>Tools Used</h2>
+      <ul>
+        <li>OpenGL</li>
+        <li>OpenAL</li>
+        <li>GLFW</li>
+        <li>Stbimage</li>
+        <li>Tinyobjloader</li>
+        <li>GLAD</li>
+        <li>GLM</li>
+      </ul>
+
+
+      <!--
+      <h2>Videos</h2>
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/pLNkkcrut_k" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <p>A short demo of moving through the scene in real time.</p>
+      -->
+
+      <br>
+      <h2>Images:</h2>
+      <div class="centerText">
+        <img class="capWidth" src="">
+        <p>A few demo images coming soon</p>
+        <hr>
+      </div>
+  </body>
+</html>
