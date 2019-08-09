@@ -24,8 +24,11 @@
     <div id="projects">
       <h1 class="centerText">Progression</h1>
       <hr>
+      <h2>Update as of August 9th 2019</h2>
+      <p>In July I deleted the whole engine and am redoing it. I didn't like the design I was using, and have learned a lot about game engines while interning at Activision. I am redoing this engine while encorporating things I have learned from this internship and in general. I hope to be back to what I had (although a lot cleaner and better) by October 2019.</p>
+
       <h2>Description</h2>
-      <p>Progression is a game engine I have been working on mostly since Fall of 2018. It is a 3D game engine written in C++ for both Linux and Windows. I'm mostly building it because I think game engines are super cool and want to learn what goes into them. What better way to learn that to build one myself? It has a lot of features that are listed below, but some of the biggest problems I have spent time on are: engine design, rendering pipelines, and resource optimization. A lot of my time on this has been thinking on how such a (eventually) large project should be designed, and debating the trade offs between speed and ease of use/implementation. I've also spend quite a bit of time exploring the differences between forward rendering, deferred rendering, deferred with light volumes, and tiled-deferred rendering. Finally, i've tried to optimize resource loading, and create a manager that makes it easy to access resources without duplication. I hope to keep adding to this engine as time goes on.</p>
+      <p>Progression is a game engine I have been working on mostly since Fall of 2018. It is a 3D game engine written in C++ for both Linux and Windows. I'm mostly building it because I think game engines are super cool and want to learn what goes into them. What better way to learn that to build one myself? It has a lot of features that are listed below, but some of the biggest problems I have spent time on are: engine design, rendering pipelines, and resource optimization. A lot of my time on this has been thinking on how such a large project should be designed, and debating the trade offs between speed and ease of use/implementation. I've also spend quite a bit of time exploring the differences between forward rendering, deferred rendering, deferred with light volumes, and tiled-deferred rendering. Finally, i've tried to optimize resource loading, and create a manager that makes it easy to access resources without duplication, and loading models from a serialize binary format. I hope to keep adding to this engine as time goes on.</p>
 
       <h2>Motivation</h2>
       <p>For a long time I thought I wanted to make video games. After I took a few graphics courses though, I started to realize that what I was more passionate about was the technology that goes into games, not creating the games themselves. Every year games do more and look better, while still keeping real time frame rates. I thought that this was really interesting, and wanted to learn how it happens myself. Since I already really liked C++, I thought the best way for me to learn how would be to make a game engine. I don't have a game in mind while creating this, but I am putting a lot of time into thinking about how it should be designed to help make games. While it's something I only have time to work on in small pieces, I hope to keep extending it and using it to learn new things about graphics, game engines, and C++.</p>
@@ -36,7 +39,9 @@
       <h2>Features</h2>
       <ul>
         <li>3D rendering of models with Blinn-Phong shading</li>
+        <li>Dynamic shadows for point, spot, and directional lights</li>
         <li>Configurable rendering pipeline: can toggle between forward and tiled-deferred rendering</li>
+        <li>Bloom</li>
         <li>A basic entity-component architecture</li>
         <li>Resource management of: models, textures, materials, shaders, and skyboxes</li>
         <li>Input handler</li>
@@ -51,16 +56,6 @@
         <li>Single window management</li>
       </ul>
 
-      <h2>Upcoming Features</h2>
-      <ul>
-          <li>Shadows</li>
-          <li>PBR</li>
-          <li>Actually making the audio engine easier to use</li>
-          <li>Parent/child heirarchy</li>
-          <li>More robust HDR/tone mapping</li>
-          <li>Basic GUI with Dear ImGui</li>
-      </ul>
-
       <h2>Tools Used</h2>
       <ul>
         <li>OpenGL</li>
@@ -70,6 +65,7 @@
         <li>Tinyobjloader</li>
         <li>GLAD</li>
         <li>GLM</li>
+        <li>cpptoml</li>
       </ul>
 
 
@@ -82,8 +78,20 @@
       <br>
       <h2>Images:</h2>
       <div class="centerText">
-        <img class="capWidth" src="">
-        <p>A few demo images coming soon</p>
+        <img class="capWidth" src="robot_closeup.png">
+        <p>Closeup of one of the robots during a demo scene.</p>
+        <hr>
+        <img class="capWidth" src="robots_bloom.png">
+        <p>Robots collecting each of the five lights. Robots plan path using TTC algorithm.</p>
+        <hr>
+        <img class="capWidth" src="all_robots.png">
+        <p>End of the robot collecting lights demo.</p>
+        <hr>
+        <img class="capWidth" src="point_shadows.png">
+        <p>First implementation of dynamic point shadows.</p>
+        <hr>
+        <img class="capWidth" src="bouncing_lights.png">
+        <p>Several thousand lights bouncing lights while staying over 30 FPS with the tile deferred renderer.</p>
         <hr>
       </div>
   </body>
