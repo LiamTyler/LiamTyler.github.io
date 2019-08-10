@@ -1,0 +1,116 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon"/>
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+        <ul>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
+        </ul>
+      </nav>
+    </div> 
+    <div id="projects">
+      <h1 class="centerText">Teaching Assistant: Intro to C++</h1>
+      <hr>
+      <h2>Description</h2>
+      <p>I was a TA for this class for six semesters as an undergrad student, one of them as the lead TA. My main responsibilities were to lead students in labs, provide help at office hours, and help grade. Occasionally I was asked to make a small project, which can be seen below.</p>
+
+      <h2>Mini Projects</h2>
+
+      <h3>Maze Downloader</h3>
+      <p>In this lab that I created, students had to download a randomly generated maze, and build a character to walk through it. This was their first week on classes, so I gave them code to navigate to a website, submit a form, and download the webpage. They just had to use that to go to a website that generates random mazes, and download one. After that, they would build a Character class that could walk through the maze.</p>
+      <p>As the lead TA for one semester, I was asked to spend an hour or two each week coming up with one or two new lab problems. Near the end of the semester though, when the students finally knew enough to start making fun programs, I wanted to give them a more exciting lab. All of their past labs had been very mathematical and many students admitted to being borded. As a result, I thought the maze traversal and downloading would be a nice change of pace.</p>
+      <h3>Code</h3>
+      <a target="_blank" href="https://github.com/LiamTyler/Maze_Downloader">Go to Github page</a>
+      <h3>Tools Used</h3>
+      <ul>
+        <li>libCurl for the web navigation and form submitting</li>
+      </ul>
+      <h3>Images:</h3>
+      <div class="centerText">
+        <img class="capWidth" src="maze.png">
+      </div>
+
+      <h3>Snake</h3>
+      <p>This lab is a spin off of the old arcade Snake game. The goal is to have a snake that goes around and eat fruit. When a fruit is eaten, the player gains points and the snake grows longer. Some of the fruit stays still, while some fruit moves around the screen. There is also an enemy 'SnakeFruit.' It acts like a snake as it tries to beat you to eating the fruit. It will grow longer and gain its own points, as well as speed the game up and make it harder for you play. However, it's also like a fruit, because if the player hits the head, it will be eaten like a fruit.</p>
+      <p>Similar to the last project, I wanted to give the students a fun lab that they would remember and enjoy. This was their last lab, and I really wanted the students to walk away from their first computer science class excited about programming. I think students are way more likely to take more computer science classes if they do projects that are fun and good learning experiences. As a result I ended up spending a lot of time trying to make this a good lab.</p>
+      <h3>Code</h3>
+      <a target="_blank" href="https://github.com/LiamTyler/Console_Snake">Go to Github page</a>
+      <h3>Tools Used</h3>
+      <ul>
+        <li>Ncurses for the terminal graphics and keyboard handling</li>
+      </ul>
+      <h3>Images:</h3>
+      <div class="centerText">
+        <img class="capWidth" src="snake1.png">
+        <hr>
+        <img class="capWidth" src="snake2.png">
+      </div>
+
+      <h3>Unit Tester</h3>
+      <p>Right at the end of a semester, I was asked by the professor who I was a teaching assistant for, to try to make a framework for testing student's code. I only had a few days to try to make this. At the time I was trying to customize this to what we usually expect from the assignments in that class. It ended up being a little hard to understand though, and not as practical as I had hoped. Nowadays I would probably look at Google Test or something similar before making a custom setup.</p>
+      <p>This framework is currently only capable of testing IO and functions and right now, including int main(). It doesn't have the same support for classes yet. What it does though, is compiles the students code, and runs each test in a separate process, so if they crash, it's ok. It then returns a final summary of how many tests passed.</p>
+      <h3>Code</h3>
+      <a target="_blank" href="https://github.com/LiamTyler/UnitTestingC">Go to Github page</a>
+      <h3>Features</h3>
+      <h3>Testing</h3>
+      <ul>
+        <li>Create a 'Tester' object, and give it the student's function that you wish to test</li>
+        <li>Add test cases to that Tester object by giving it the starting parameters, and what the return should be</li>
+        <li>If you are testing standard IO, you can also give a test cases the input string it needs, and a regex of what the output should be</li>
+        <li>Run all the tests, each in a separate process, so that crashes are fine</li>
+        <li>Get a finally summary for a Tester object, to see how many tests succeeded</li>
+      </ul>
+      <h3>Handling Student's Code</h3>
+      <ul>
+        <li>Create a 'Program' object that takes in the filename of the code you want to test</li>
+        <li>The Program object will create a new copy of that file with int main() renamed (as to not conflict with the main() from the tester's code) and add the necessary includes for dynamic linking</li>
+        <li>Will compile the code, or alert the user if it failed to compile</li>
+        <li>Once compiled, you can give it the name of a function you want, and it will return it</li>
+      </ul>
+      <h3>Example</h3>
+      <pre>
+        <code>
+Program student_prgm(&quot;students_code.cpp&quot;);
+if (!student_prgm.FullPrepare()) {
+    cout << &quot;Failed to compile and dynamically load student's code&quot; << endl;
+    exit(1);
+    }
+
+// Get student's int main() function
+typedef int (*stu_main)(int, char**);
+stu_main f = (stu_main) student_prgm.GetFunction(&quot;student_main&quot;);
+
+// Create a tester object for that int main(). Lets say their code should
+// just allow the user to enter their name, and then print &quot;Hello, ____!&quot;
+// with their name in it.
+
+// IOTester<return_type, param 1 type, param 2 type>
+// iotester(test_name, test_function)
+IOTester<int, int, char**> iotester(&quot;Print name&quot;, f);
+// Now, set up test cases
+int test_argc = 0
+char** test_argv = nullptr;
+// test_name, expected_ret, input, output regex, arg 1, arg2
+iotester.AddTest(&quot;Bob's Test&quot;, 0, &quot;Bob&quot;, &quot;Hello, Bob!\\s+&quot;, test_argc, test_argv);
+iotester.AddTest(&quot;Sam Smiths's Test&quot;, 0, &quot;Sam Smith&quot;, &quot;Hello, Sam Smith!\\s+&quot;, test_argc, test_argv);
+iotester.RunAllTests();
+iotester.GetSummary(cout);
+        </code>
+      </pre>
+
+    </div>
+  </body>
+</html>
