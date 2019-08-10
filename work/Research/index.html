@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon"/>
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+        <ul>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
+        </ul>
+      </nav>
+    </div>
+    <div id="projects">
+      <h1 class="centerText">Research Assistant (Summer 2017)</h1>
+      <hr>
+      <h2>Description</h2>
+      <p>Some of the biologists here at the UMN are doing research on how cancer cells migrate throughout the body. They created a new motor-clutch model and wrote a 2D simulator for it in Matlab. The problem however, was that simulating 8 hours took about 17 hours in real life. They hired me to rewrite the code in C++ and speed it up.</p>
+      <h2>Results</h2>
+      <p>During the summer of 2017 I worked on converting the simulator. I got it to simulate 8 hours in about a half hour of real time. This was a ~30x speed up. There was still a lot of room for optimization, but this was a good enough speed up to shift gears. In the fall I worked with the visualization professor in the computer science department. We worked on a tool that would help visualize and understand the model, because in a lot of ways, the model the biologists came up with was still a black box with a lot of things to learn from it still. Eventually this project got handed off to one of the PhD students in the Viz lab.</p>
+      <h2>Paper</h2>
+      <a target="_blank" href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5458120"/>Go to the research paper with this simulator</a>
+      <h2>Simulator Features</h2>
+      <ul>
+        <li>Can switch between 1D and 2D easily</li>
+        <li>Highly extensible, which will make adding 3D in the future much easier</li>
+        <li>Uses a GSL non-linear equation solver to do force balance on all of the cell arms</li>
+        <li>Can easily switch into testing framework, where you can load up the exact same random numbers into both the C++ and Matlab versions, and then directly compare their states after each event. I made sure my code lined up to the 14th decimal point after 10,000 events.</li>
+      </ul>
+      <h2>Images:</h2>
+      <div class="centerText">
+        <img class="capWidth" src="cell.png">
+        <p>*Image above gotten from the linked research paper. See paper for more information*</p>
+        <hr>
+      </div>
+    </div>
+  </body>
+</html>
