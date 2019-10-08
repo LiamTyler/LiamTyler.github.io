@@ -1,0 +1,85 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon"/>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-145372343-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-145372343-1');
+    </script>
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+        <ul>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
+        </ul>
+      </nav>
+    </div>
+    <div id="projects">
+      <h1 class="centerText">View Frustum Culling and Level of Detail</h1>
+      <hr>
+      <h2>Partner: <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a></h2>
+      <h2>Description</h2>
+      <p>The goal of this project was to take an existing game engine (the professors) and make it capable of rendering very large scenes. The code we started with rendered 10,000 teapots at 2FPS on my laptop. To speed this up we implemented two key things, which are described below.</p>
+      <h4>View Frustum Culling</h4>
+      <p>The first thing we did was implement view frustum culling. We did this by calculating the axis aligned bounding box (AABB) for each model at startup. Each frame, we would then update each AABB if its object moved or rotated, and then test then against the 6 frustum planes to see which ones were inside the frustum. This worked well, but in order to make it faster we added the concept of static vs dynamic game objects to the engine. Knowing an object is static means that we can calculate its world AABB once, and reuse it every frame. This meant that we could calculate a bounding volume hierarchy (BVH) once, and reuse it every frame for the static objects. This dramatically reduced the culling time for scenes with many static objects, and allowed us to get 1,000,000 teapots at 40FPS on my laptop.</p>
+      <h4>Level of Detail</h4>
+      <p>In order to improve the rendering time of the objects that are visible, we made a very simple level of a detail system. This is a process of drawing lower quality versions of models when they are further away from the camera since the further an object is, the harder it is to notice detail in it. We made an executable that would take in an OBJ, and use the meshoptimizer to produce a decimated models. This would then be serialized for fast loading at the startup of the engine. This was nice because we did not have to manually generate lower quality meshes in Blender or something similar. The downside is that the output of the algorithm we used is pretty bad, especially at preserving the texture coordinates of a model. This makes the change in LOD levels pretty noticeable. We also used a very simple distance check to figure out which LOD to display, but a more sophisticated method could be used that takes into account the objects size and inherit detail. Still though, for a slightly lower quality scene, this boosted our FPS from 40 to 60+ since only a tenth of the triangles had to be drawn in total.</p>
+      <h2>Code</h2>
+      <a href="https://github.com/LiamTyler/8980-HW2">Link to Github</a>
+      <h2>Controls</h2>
+      <ul>
+        <li><strong>Left and Right Arrow Keys: </strong>Turn the camera left and right</li>
+        <li><strong>Up and Down Arrow Keyss: </strong>Move the camera forward and backword</li>
+        <li><strong>D: </strong>Enter / exit debug camera mode</li>
+        <li><strong>B: </strong>While in debug mode, toggles drawing the camera frustum and object AABBs</li>
+        <li><strong>Scroll Wheel: </strong>While in debug mode this shows different levels of the BVH tree</li>
+      </ul>
+      <h2>Tools Used</h2>
+      <ul>
+        <li>Stephen Guy's game engine (which uses SDL2, OpenGL, glad, glm, loguru, and Lua)</li>
+        <li>Meshoptimizer for mesh LOD generation and optimization</li>
+      </ul>
+      <h2>Videos</h2>
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/D_bNb9QX5kY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <h2>Images:</h2>
+      <div class="centerText">
+        <img class="capWidth" src="1a.png">
+        <p>The original starting image</p>
+        <hr>
+        <img class="capWidth" src="1b.png">
+        <p>Adding the 500,000 triangle Chalet from the serialized format</p>
+        <hr>
+        <img class="capWidth" src="1c.png">
+        <p>Adding the debug camera</p>
+        <hr>
+        <img class="capWidth" src="1d.png">
+        <p>10,000 teapots before implementing culling or LOD</p>
+        <hr>
+        <img class="capWidth" src="1_million_60fps.png">
+        <p>1,000,000 teapots with the BVH culling and LOD system at 60+ FPS</p>
+        <hr>
+        <img class="capWidth" src="1_million_bvh.png">
+        <p>Visualizing one of the levels in the BVH tree</p>
+      </div>
+      <h2>Turn in write up</h2>
+      <a href="https://docs.google.com/document/d/1cfAM9vADdr3Mayghj8an6NjOox43KSllGYrkIKKRkGA/edit?usp=sharing">Link to google doc</a>
+    </div>
+  </body>
+</html>
