@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>Liam Tyler</title>
+    <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <script src='/scripts/jquery-3.2.1.js'></script>
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon"/>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-145372343-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-145372343-1');
+    </script>
+  </head>
+  <body>
+    <div class="navbar">
+      <nav>
+        <ul>
+          <div class="floating">
+            <li id="LT-header">Liam Tyler<p>Software Developer</p></li>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/about/index.html">About</a></li>
+            <li><a href="/portfolio/index.html">Portfolio</a></li>
+            <li><a href="/work/index.html">Work & Research</a></li>
+          </div>
+        </ul>
+      </nav>
+    </div>
+    <div id="projects">
+      <h1 class="centerText">Vulkan Renderer and Lua + ECS</h1>
+      <hr>
+      <h2>Code</h2>
+      <a href="https://github.com/LiamTyler/Progression">Link to Github</a>
+      <h2>Tools Used</h2>
+      <ul>
+        <li>Vulkan</li>
+        <li>Lua</li>
+        <li>Sol2</li>
+        <li>EnTT ECS system</li>
+        <li>stbi image</li>
+        <li>tinyobj loader</li>
+        <li>rapidjson</li>
+        <li>SPIRV-Reflect</li>
+        <li>cpptoml</li>
+        <li>GLFW</li>
+        <li>assimp / OpenFBX</li>
+      </ul>
+      <h2>Videos</h2>
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/6Amg6wtYN5A" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <h2>Write up: Design and Technical Aspects</h2>
+      <p>So, I did not finish, nor did I really get to the "create a discrete game" part of the assignment. I did spend 102 hours on this though, and am proud of the additions I made to my engine, primarily the Vulkan renderer.</p>
+      <h4>Vulkan</h4>
+      <p>The Vulkan renderer it is a forward renderer. It supports directional, point, and spot lights, and uses blinn-phong illumination. The actual features of the renderer are not so impressive, more so just the fact that it is working in Vulkan. Some of the key technical challenges I had to face with this were: uniforms and textures. In OpenGL, uniforms are really simple. You just call "glUniform[__]" and it works. In vulkan you have to be way more specific, and deal with more issues like synchonization. The first main challenge I ran into, was that for each shader, you have to allocate "descriptors" for every uniform in the shader, with the exact same layout, and tell these descriptors exactly which piece of GPU memory (buffer, texture, etc.) it points to. It is a lot of boilerplate, and it's easy to accidentally mess something up. The solution I chose to help make this easier was to use SPIRV-Reflect as part of an offline tool. SPIRV-Reflect is a library that does reflection on shaders, and it generates the layouts of all the resources in a given shader. Before running my 'game', I would run a different tool that compiles all the shaders, does reflection on them, and then serializes them into a binary file for fast loading when the actual game starts. This makes loading times quicker and coding easier. This method of serializing is actually used for every resouce in my engine to help with load times and some performance optimizations. The shader's unfortunately still have quuite a bit of code to connect these saved layouts to the actual buffers and textures at runtime, but this helps with half the battle.</p>
+      <p>A big issue was also the synchonization aspect. When I tried to render two or more cubes instead of just one, I would only see the last cube in the list. I had one buffer for my object uniform data, such as the model matrix and material info. On the CPU I would loop over the game objects, update the buffer with that object's data, call the draw command, and go to the next object in the list. The draw commands don't actually happen until you call "submit" at the end of the frame though, and are asynchronous. This means that I was actually just overwriting the buffer before the draw commands even happened. So when the draw commands actually start happening, they all have the same model matrix, etc. This meant that I could make a really large buffer for all potential objects, and give each object a portion of this buffer. That sounded wasteful and slow though, so I used something called "push constants". Push constants are more like the OpenGL uniform api. You can add some data to push up directly inside of the command buffer. The issue is that the spec says that this only needs to support 128 bytes. Luckily, many GPUs support 256 bytes of push constant data though. This meant that I could push up my model matrix, normal matrix, and some material info in about 170 bytes. This method worked really well and I was quite happy with it.</p>
+      <p>The last big hurdle with Vulkan was textures. You need to create a descriptor set for every single resource, you can't just bind textures like in OpenGL. Many sites online said it's possible to create a descriptor set for every texture, but can be pretty slow. My engine also has dynamic materials, so this would involve updating these sets everytime a texture is swapped or changed. Instead I ended up using one huge array of textures. At the beginning I allocate space for 4096 texture descriptors on the GPU, and have all of them point to a dummy 2x2 yellow image at first (found out the hard way you can't have them be null). Then I have a texture manager that hooks into every texture's creation and deletion. It will find an open slot for that texture, and return the integer index of that slot. When the texture is deleted, it will mark that index as free for future textures. Then during the render loop, I can just send up the index as part of the push constant data, and grab the texture inside the shader itself. Since textures can be created or deleted each frame, the texture manager has an update function that will go through all the queue'd textures and find slots for them. This worked really well, as long as the max number of textures isn't too absurd. Technically my machine supports 1 million slots, but having 64K tanked the FPS even with just one object in the scene. 2 - 4K isn't even noticeable though for some reason, but that is plenty for me currently.</p>
+      <h4>Lua + ECS</h4>
+      <p>This one turned out pretty well. While it wasn't highlighted very well with the video above, everything in the video was done in lua scripts and scene files, didn't have to change the C++ side of things at all. I modeled my scripting system heavily after Unity's: components and scripts can be attached to entities. The same script can be attached to multiple entities, and they will all have their own local environment, so they won't overwrite each other's variables. The C++ side of things detects if the script has a "Start" function. If it does, it will be called once on the first frame. It also does the same thing with the "Update" function each frame. These Lua scripts can also call exposed C++ functions, and can grab functions and variables from other lua scripts if so desired. I used the Sol library to do all these Lua bindings and registering. It made it a lot easier to expose classes and functions to Lua. I exposed some of the core features a script might want: math (vectors, matrices, etc), the input system, the entity component system, camera, etc. There is some more I need to add, especially involving resources, but by exposing the ECS, plenty of game logic can be accomplised as is. To elaborate a bit more on the ECS, I used "EnTT", which is also used in several commerical games, such as Minecraft. I had written my own, but I switched because it was basically a crappier version of EnTT. I use this ECS heavily now in my engine-- game logic, model rendering, and animations all use this. It allocates all components of the same time continuously in memory, making iteration very fast. By adding this ECS is reduced how connected my systems have to be. Everyone has access to the ECS, and can query/loop over whatever they need. A good example of this is when I started adding FBX animations. I just added a "SkinnedRenderer" component, and the render system could immediately do a "for each SkinnedRenderer...". It was really convenient.</p>
+      <h4>FBX animation</h4>
+      <p>At the end of the project, I took a stab at FBX animations. I at first tried using OpenFBX as a parser. I could get the mesh data and extract the bones, but actually extracting and using the animations confused me a lot with that library. I ended up switching to Assimp, because I saw an OpenGL example using that. I got close I think, but just could not get it working in the time I had. This is what is seen in my video above with the dragon, and two arm lever. A static mesh works, and the actual movement and timing of animations seems correct, but somehow the offsets or something get messed up when skinning. If I had a couple more weeks, I would love to sit down and work through this bug and actually create a decent animation system, not just a copy of a slow tutorial online.</p>
+      <h4>Overall</h4>
+      <p>Overall every single thing I chose to do for this assignment was extremely challenging for me. Vulkan is a mountain to climb. With Sol + EnTT both I ran into MSVC compiler bugs, and had to submit github issues and spend many hours on that. The FBX animations kicked my butt even though I tried really hard on them. I think I just don't know animations well enough to really know how to debug them and what the values should look like. Even though I didn't finish, I am happy I tried such challenging tasks, and got two of the three working.</p>
+    </div>
+  </body>
+</html>
