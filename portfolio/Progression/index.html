@@ -4,6 +4,7 @@
     <meta charset='utf-8'>
     <title>Liam Tyler</title>
     <link rel='stylesheet' type='text/css' href='/styles/styles.css'>
+    <link href="/styles/prism.css" rel="stylesheet" />
     <script src='/scripts/jquery-3.2.1.js'></script>
     <link rel="icon" href="/images/favicon.ico" type="image/x-icon"/>
 
@@ -31,59 +32,70 @@
         </ul>
       </nav>
     </div>
+    <script src="/scripts/prism.js"></script>
     <div id="projects">
       <h1 class="centerText">Progression</h1>
       <hr>
-      <h2>Update as of August 9th 2019</h2>
-      <p>In July I decided to delete the entire engine and start again. I didn't like the design I was using and have learned a lot about game engines while interning at Activision. I plan on redoing this engine while incorporating things I have learned from this internship and from my Master's courses.</p>
 
       <h2>Description</h2>
-      <p>Progression is a game engine I have been working on since Fall 2018. It is a 3D game engine written in C++ for both Linux and Windows. My main challenges I have encountered are: engine design, rendering pipelines, and resource optimization. I have spent a lot of my time thinking on how such a large project should be designed, and debating the trade offs between speed and ease of use/implementation. I've explored the differences between forward rendering, deferred rendering, deferred with light volumes, and tiled-deferred rendering. Finally, I've tried to optimize resource loading, and create a manager that makes it easy to access resources without duplication, and loading models from a serialize binary format. I hope to keep adding to this engine as time goes on.</p>
-
-      <h2>Motivation</h2>
-      <p>For a long time, I thought I wanted to make video games. After I took a few graphics courses though, I started to realize that what I was more passionate about was the technology that goes into games, not creating the games themselves. Every year games do more and look better, while keeping real time frame rates. I thought that this was really interesting and wanted to learn how it happens myself. What better way to learn about game engines than to implement one? I don't have a game in mind while creating this, but I am putting a lot of time into thinking about how it should be designed to make the process of making games easier. While it's something I only have time to work on in small pieces, I hope to keep extending it and using it to learn new things about graphics, game engines, and C++.</p>
+      <p>Progression is a 3D game engine written in C++ for Linux and Windows. It originally started out as an simple OpenGL renderer for class projects, but it now features a Vulkan renderer, Lua scripting, skeletal animation, asset serialization, and more. It is my largest project to date, even though I keep rewriting it as I learn more and gain more experience with C++ and graphics.</p>
 
       <h2>Code</h2>
-      <p>Code from this project can be found in <a href="https://github.com/LiamTyler/Progression">this GitHub repo</a></p>
+      <p>Code from this project can be found on Github <a href="https://github.com/LiamTyler/Progression">here</a></p>
 
       <h2>Features</h2>
+      <h5>Note: for the normal mapping, deferred rendering, and SSAO I partnered up with <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for them as part of a project</h5>
+      
+      <h4>Screen Space Ambient Occlusion (SSAO)</h4>
+      <p>We took the approach described in <a href="https://learnopengl.com/Advanced-Lighting/SSAO">this</a> tutorial. </p>
+      
+      <div class="centerText">
+        <div style="float: left; width: 50%; padding: 5px;">
+          <img src="sponza_no_AO.png" style="width:100%">
+        </div>
+        <div style="float: left; width: 50%; padding: 5px;">
+          <img src="sponza_with_AO.png" style="width:100%">
+        </div>
+        <p>Sponza without SSAO (left) and Sponza with SSAO (right).</p>
+        <img class="capWidth" src="sponza_AO_only.png">
+        <p>The ambient occlusion texture.</p>
+      </div>
+      
+      <h4>Deferred Rendering</h4>
+      <p>While I had written a tiled-deferred renderer in OpenGL, current Vulkan renderer is just regular deferred rendering without even light volumes currently. Tiled deferred or F+ is on the docket. Only just started trying to consider the GBuffer size and reduce it, but the current GBuffer looks like this:</p>
       <ul>
-        <li>3D rendering of models with Blinn-Phong shading</li>
-        <li>Dynamic shadows for point, spot, and directional lights</li>
-        <li>Configurable rendering pipeline: can toggle between forward and tiled-deferred rendering</li>
-        <li>Bloom</li>
-        <li>A basic entity-component architecture</li>
-        <li>Resource management of: models, textures, materials, shaders, and skyboxes</li>
-        <li>Input handler</li>
-        <li>Scene loading from text files</li>
-        <li>Basic positional audio through OpenAL</li>
-        <li>Custom model format for optimized load times</li>
-        <li>OBJ loading</li>
-        <li>Directional and point lights supported</li>
-        <li>Skybox support</li>
-        <li>Image loading and texturing for: jpeg, png, bmp, tga</li>
-        <li>Logging system</li>
-        <li>Single window management</li>
+        <li><strong>Positions: </strong>RGBA32_FLOAT</li>
+        <li><strong>Normals: </strong>RGBA8_UNORM (compressed using 24-bit octahedron encoding)</li>
+        <li><strong>Diffuse and Specular Colors: </strong>RGBA16_UINT (upper 8 bits of RGB are diffuse color, lower 8 are specular, and the alpha component is the 16 bit specular exponent)</li>
+        <li><strong>Ambient Occlusion: </strong>R8_UNORM</li>
+        <li><strong>Depth: </strong>32 bit</li>
       </ul>
+      <p>While positions and normals do not need the alpha channel, my GPUs do not support RGB textures with optimal tiling. Initially normals were RGBA32_FLOAT, the diffuse and specular were RGBA_UNORM and RGBA16_FLOAT respectively. With each change to the gbuffer we saw the following timings:</p>
+      <img class="capWidth" src="gbuffer_timings.png">
+      <p>Sponza timings with 4 lights in 1080p on my RTX 2080. Yes, the SSAO pass is very unoptimized currently.</p>
+      <p>I am currently trying to figure out if 16 bit positions are okay, and play around with what I could put in the alpha channel instead of it being unused. I also want to try getting rid of the position buffer altogether and just recover it via the depth buffer.</p>
+      
+      <h4>Normal Mapping</h4>
+      <p>The VBO stores the normals and tangents, but not the bitangents since those are calculated in the shader. The TBN matrix which transforms vectors from tangents space to world space is calculated with the following pseudocode:</p>
+      <pre><code class="language-glsl">
+      vec3 worldT = normalize( modelMatrix * inTangent );
+      vec3 worldN = normalize( inverse( transpose( modelMatrix ) ) * inNormal );
+      vec3 worldB = cross( worldN, worldT );
+      TBN         = mat3( worldT, worldB, worldN );
+      <pre><code class="language-glsl">
+      <p>All the blogs and tutorials we saw online multiply both the tangent and normal by just the model matrix, but we are pretty sure that since the normal does not lie on the geometry surface, just multiplying by the model matrix would skew the result for non-uniform scaling. The tangent and bitangent lie along the surface though and do not need the inverse transpose. We then just look up the normal map value, normalize to [-1, 1] and apply the matrix:</p>
+      <code>
+      vec3 n = texture( normalMap, texCoord );
+      n      = normalize( n * 2 - 1 );
+      n      = normalize( TBN * n );
+      </code></pre>
+      <h4>Profiling and RenderDoc Integration</h4>
+      <p></p>
 
-      <h2>Tools Used</h2>
-      <ul>
-        <li>OpenGL</li>
-        <li>OpenAL</li>
-        <li>GLFW</li>
-        <li>Stbimage</li>
-        <li>Tinyobjloader</li>
-        <li>GLAD</li>
-        <li>GLM</li>
-        <li>cpptoml</li>
-      </ul>
 
-
-      <!--
       <h2>Videos</h2>
-      <iframe width="560" height="315" src="https://www.youtube.com/embed/pLNkkcrut_k" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-      <p>A short demo of moving through the scene in real time.</p>
-      -->
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/Du04-9DlrCA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <p>A short demo highlighting some of the more recent rendering features</p>
 
       <br>
       <h2>Images:</h2>
