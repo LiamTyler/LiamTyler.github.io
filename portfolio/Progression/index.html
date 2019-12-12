@@ -44,7 +44,7 @@
       <p>Code from this project can be found on Github <a href="https://github.com/LiamTyler/Progression">here</a></p>
 
       <h2>Features</h2>
-      <h5>Note: for SSAO, deferred rendering, and normal mapping I partnered up with <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for them as part of a project</h5>
+      <h5>Note: for SSAO, deferred rendering, shadow mapping, and normal mapping I partnered up with <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for them as part of a project</h5>
       
       <h3>Screen Space Ambient Occlusion (SSAO)</h3>
       <p>We took the approach described in <a href="https://learnopengl.com/Advanced-Lighting/SSAO">this</a> tutorial. This method randomly samples many nearby points for each pixel, and return which fraction of those samples were occluded by other nearby geometry. This can be seen in the following image:</p>
@@ -69,15 +69,15 @@ for ( int i = 0; i < (int) numSamples; ++i )
 std::vector< glm::vec4 > noise( 16 );
 for ( int i = 0; i < 16; ++i )
 {
-    noise[i] = glm::vec4( randomFloats( generator ) * 2 - 1, randomFloats( generator ) * 2 - 1, 0, 0 );
+    noise[i] = glm::vec4( randomFloat() * 2 - 1, randomFloat() * 2 - 1, 0, 0 );
 }
       </pre></code>
       <p>After uploading the kernel and tangent texture, the actual SSAO shader needs to be run. First we need to do Gramm-Schmidt to generate the orthonormal basis:</p>
       <pre><code class="language-glsl">
-        vec3 randomVec = texture( ssaoNoise, noiseUV ).xyz;
-        vec3 T         = normalize( randomVec - N * dot( N, randomVec ) );
-        vec3 B         = cross( N, T );
-        mat3 TBN       = mat3( T, B, N );
+vec3 randomVec = texture( ssaoNoise, noiseUV ).xyz;
+vec3 T         = normalize( randomVec - N * dot( N, randomVec ) );
+vec3 B         = cross( N, T );
+mat3 TBN       = mat3( T, B, N );
       </code></pre>
       <p>One interesting note here is that N is in view space, and to my understanding the tutorial we followed chose z = 0 for the random vectors so that the random vector would never be parallel to N. If they were paralle, then T would be normalizing the vector ( 0, 0, 0 ) and our basis would be defficient. View space vectors can have z <= 0 though, so I don't understand how we can guarantee an orthonormal basis here, or why view space is advantageous. It looks fine though, so we didn't change anything with it. The next step is actually sample the points, and add up how many of them are occluded by the actual saved geometry:</p>
       <pre><code class="language-glsl">
@@ -104,10 +104,10 @@ for ( int i = 0; i < 32; ++i )
       </div>
       <p>To fix this is pretty easy, and we just run a blur filter of this image to produce the new ambient occlusion texture and then in the final lighting calculations:</p>
       <div class="centerText">
-        <img class="capWidth" src="AO.png">
+        <img class="capWidth" src="sponza_AO_only.png">
         <p>The ambient occlusion texture.</p>
-        <img class="capWidth" src="sponza_no_AO.png">
-        <img class="capWidth" src="sponza_with_AO.png">
+        <img class="capWidth" src="sponza_no_AO.jpg">
+        <img class="capWidth" src="sponza_with_AO.jpg">
         <p>Sponza without SSAO (left) and Sponza with SSAO (right).</p>
       </div>
       
@@ -146,15 +146,23 @@ n      = normalize( TBN * n );
       </code></pre>
       
       <br>
-      <h3>Profiling and RenderDoc Integration</h3>
-      <p></p>
+      <h3>GPU Profiling</h3>
+      
+      <br>
+      <h3>RenderDoc Integration</h3>
+      <p>Another small thing I implemented that ended helping me debug a lot faster was giving resources and regions names that are visible in RenderDoc captures as seen below:</p>
+      <div class="centerText">
+        <img class="capWidth" src="renderdoc_regions_comparison.jpg">
+        <p>How the regions and draw commands used to look (left), and after the new feature (right)</p>
+        <img class="capWidth" src="renderdoc_resources_comparison.jpg">
+        <p>How the resource inspector used to look (left), and after the new feature (right)</p>
+      </div>
+      <p>This was a small feature, but it already has saved me lots of time being able to find the exact resources and draw calls I am interested in. Names and regions are registered using the VK_EXT_debug_marker extension. Each resource has an optional last parameter during its creation to specify the name. Just like the GPU profiler, the API for naming is a series of macros. This is so that in Ship builds these names disappear for max performance.</p>
 
       <br>
       <h2>Videos</h2>
-      <div class="center">
       <iframe width="560" height="315" src="https://www.youtube.com/embed/Du04-9DlrCA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-      <p>A short demo highlighting some of the more recent rendering features</p>
-      </div>
+      <p class="centerText">A short demo highlighting some of the more recent rendering features</p>
       <br>
       <!--
       <h2>Images:</h2>
@@ -165,6 +173,27 @@ n      = normalize( TBN * n );
         <hr>
       </div>
       -->
+    
+    <h3>Special Thanks</h3>
+    <p>I want to give a special thanks to Moses Adeagbo for inspiring me to start this in the first place and helping me a lot with OpenGL in the beginning. Stephen Guy for putting in way more time than he had to as a professor helping me understand many of these concepts. <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for being the only person at the UMN that wanted to partner up with me to do cool graphics in Vulkan when we did the first round of SSAO, deferred rendering, normal mapping, and directional shadow mapping.</p>
+    <h3>External Libraries Used</h3>
+    <ul>
+      <li>Vulkan</p>
+      <li>EnTT</li>
+      <li>Sol2</li>
+      <li>Lua</li>
+      <li>Assimp</li>
+      <li>stb_image</li>
+      <li>GLFW</li>
+      <li>LZ4</li>
+      <li>SPIRV-Reflect</li>
+      <li>GLM</li>
+      <li>rapidjson</li>
+      <li>meshoptimizer</li>
+      <li>cpptoml</li>
+      <li>MemoryMapped by Stephan Brumme</li>
+    </ul>
+    
     <script src='/scripts/code_snippet_formatter.js'></script>
   </body>
 </html>
