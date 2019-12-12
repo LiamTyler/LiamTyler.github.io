@@ -108,7 +108,7 @@ for ( int i = 0; i < 32; ++i )
         <p>The ambient occlusion texture.</p>
         <img class="capWidth" src="sponza_no_AO.jpg">
         <img class="capWidth" src="sponza_with_AO.jpg">
-        <p>Sponza without SSAO (left) and Sponza with SSAO (right).</p>
+        <p>Sponza without SSAO (top) and Sponza with SSAO (bottom).</p>
       </div>
       
       <br>
@@ -129,6 +129,10 @@ for ( int i = 0; i < 32; ++i )
       <p>I am currently trying to figure out if 16 bit positions are okay, and play around with what I could put in the alpha channel instead of it being unused. I also want to try getting rid of the position buffer altogether and just recover it via the depth buffer.</p>
       
       <br>
+      <h3>Directional Light Shadow Mapping</h3>
+      
+      
+      <br>
       <h3>Normal Mapping</h3>
       <p>The VBO stores the normals and tangents, but not the bitangents since those are calculated in the shader. The TBN matrix which transforms vectors from tangents space to world space is calculated with the following pseudocode:</p>
       <pre><code class="language-glsl">
@@ -147,53 +151,69 @@ n      = normalize( TBN * n );
       
       <br>
       <h3>GPU Profiling</h3>
+      <p>I had wanted to implement a simple system for timing Vulkan commands for a while. I finally got around to doing it when I started considering different GBuffer formats and packings, since that was the only detailed way to tell how each change was impacting performance. The system I implemented uses the built in "vkCmdWriteTimestamp". The user can insert timestamps into the command buffer and mark them with an name as well. By default the timings won't be printed out unless the user manually looks them up. The default is to wait until the application is exiting to print out all of the averages for the timestamps that start with the same prefix, such as "Frame_Start" and "Frame_End". An example usage of this in my main draw function is shown below:</p>
+      
+      <pre><code class="language-c++">
+cmdBuf.BeginRecording();
+PG_PROFILE_RESET( cmdBuf );
+
+PG_PROFILE_TIMESTAMP( cmdBuf, "Frame_Start" );
+ShadowPass( scene, cmdBuf );
+GBufferPass( scene, cmdBuf );
+SSAOPass( scene, cmdBuf );
+DeferredLightingPass( scene, cmdBuf );
+PostProcessPass( scene, cmdBuf, swapChainImageIndex );
+PG_PROFILE_TIMESTAMP( cmdBuf, "Frame_End" );
+
+PG_PROFILE_GET_RESULTS();
+      </code></pre>
+      <div class="centerText">
+        <img class="capWidth" src="sponza_timings.jpg">
+        <p>Output from a normal run of Sponza in my engine</p>
+      </div>
+      
+      <p>The reason everything is a macro is because in my engine I have multiple build configurations. The slowest is "Debug" and the fastest is "Ship". In the Ship build, I want everything to be as fast as possible, so I turn off logging, profiling, resource naming, etc. Macros provide an easy way for me to disable the functions entirely for specific builds, ensuring no performance hit.</p>
+      
       
       <br>
       <h3>RenderDoc Integration</h3>
-      <p>Another small thing I implemented that ended helping me debug a lot faster was giving resources and regions names that are visible in RenderDoc captures as seen below:</p>
+      <p>A small feature in my engine that has helped me debug a lot faster was giving resources and regions names that are visible in RenderDoc captures as seen below:</p>
       <div class="centerText">
         <img class="capWidth" src="renderdoc_regions_comparison.jpg">
         <p>How the regions and draw commands used to look (left), and after the new feature (right)</p>
+        <br>
         <img class="capWidth" src="renderdoc_resources_comparison.jpg">
         <p>How the resource inspector used to look (left), and after the new feature (right)</p>
       </div>
-      <p>This was a small feature, but it already has saved me lots of time being able to find the exact resources and draw calls I am interested in. Names and regions are registered using the VK_EXT_debug_marker extension. Each resource has an optional last parameter during its creation to specify the name. Just like the GPU profiler, the API for naming is a series of macros. This is so that in Ship builds these names disappear for max performance.</p>
+      <p>This was a small feature, but it already has saved me lots of time being able to find the exact resources and draw calls I am interested in. Names and regions are registered using the VK_EXT_debug_marker extension. In my graphics api that sits ontop of vulkan, each resource has an optional last parameter during its creation to specify the name. Just like the GPU profiler, the API for naming is a series of macros. This is so that in Ship builds these names disappear for max performance.</p>
 
       <br>
       <h2>Videos</h2>
       <iframe width="560" height="315" src="https://www.youtube.com/embed/Du04-9DlrCA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
       <p class="centerText">A short demo highlighting some of the more recent rendering features</p>
       <br>
-      <!--
-      <h2>Images:</h2>
-      <div class="centerText">
-        <img class="capWidth" src="robots_bloom.png">
-        <p>Robots collecting each of the five lights. Robots plan path using TTC algorithm.</p>
-        <hr>
-        <hr>
-      </div>
-      -->
     
-    <h3>Special Thanks</h3>
-    <p>I want to give a special thanks to Moses Adeagbo for inspiring me to start this in the first place and helping me a lot with OpenGL in the beginning. Stephen Guy for putting in way more time than he had to as a professor helping me understand many of these concepts. <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for being the only person at the UMN that wanted to partner up with me to do cool graphics in Vulkan when we did the first round of SSAO, deferred rendering, normal mapping, and directional shadow mapping.</p>
-    <h3>External Libraries Used</h3>
-    <ul>
-      <li>Vulkan</p>
-      <li>EnTT</li>
-      <li>Sol2</li>
-      <li>Lua</li>
-      <li>Assimp</li>
-      <li>stb_image</li>
-      <li>GLFW</li>
-      <li>LZ4</li>
-      <li>SPIRV-Reflect</li>
-      <li>GLM</li>
-      <li>rapidjson</li>
-      <li>meshoptimizer</li>
-      <li>cpptoml</li>
-      <li>MemoryMapped by Stephan Brumme</li>
-    </ul>
+      <h3>Special Thanks</h3>
+      <p>I want to give a special thanks to Moses Adeagbo for inspiring me to start this in the first place and helping me a lot with OpenGL in the beginning. Stephen Guy for putting in way more time than he had to as a professor helping me understand many of these concepts. <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for being the only person at the UMN that wanted to partner up with me to do cool graphics in Vulkan when we did the first round of SSAO, deferred rendering, normal mapping, and directional shadow mapping.</p>
+      <h3>External Libraries Used</h3>
+      <ul>
+        <li>Vulkan</li>
+        <li>EnTT</li>
+        <li>Sol2</li>
+        <li>Lua</li>
+        <li>Assimp</li>
+        <li>stb_image</li>
+        <li>GLFW</li>
+        <li>LZ4</li>
+        <li>SPIRV-Reflect</li>
+        <li>GLM</li>
+        <li>rapidjson</li>
+        <li>meshoptimizer</li>
+        <li>cpptoml</li>
+        <li>MemoryMapped by Stephan Brumme</li>
+      </ul>
     
+    </div>
     <script src='/scripts/code_snippet_formatter.js'></script>
   </body>
 </html>
