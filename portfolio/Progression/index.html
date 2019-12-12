@@ -56,17 +56,17 @@
       
       <div class="centerText">
         <div style="float: left; width: 50%; padding: 5px;">
-          <img src="sponza_no_AO.png" style="width:100%">
+          <img src="no_ao_sponza.png" style="width:100%">
         </div>
         <div style="float: left; width: 50%; padding: 5px;">
-          <img src="sponza_with_AO.png" style="width:100%">
+          <img src="ao_sponza.png" style="width:100%">
         </div>
         <p>Sponza without SSAO (left) and Sponza with SSAO (right).</p>
-        <img class="capWidth" src="sponza_AO_only.png">
+        <img class="capWidth" src="AO.png">
         <p>The ambient occlusion texture.</p>
       </div>
       
-      
+      <br>
       <h4>Deferred Rendering</h4>
       <p>While I had written a tiled-deferred renderer in OpenGL, current Vulkan renderer is just regular deferred rendering without even light volumes currently. Tiled deferred or F+ is on the docket. Only just started trying to consider the GBuffer size and reduce it, but the current GBuffer looks like this:</p>
       <ul>
@@ -81,29 +81,31 @@
       <p>Sponza timings with 4 lights in 1080p on my RTX 2080. Yes, the SSAO pass is very unoptimized currently.</p>
       <p>I am currently trying to figure out if 16 bit positions are okay, and play around with what I could put in the alpha channel instead of it being unused. I also want to try getting rid of the position buffer altogether and just recover it via the depth buffer.</p>
       
-      
+      <br>
       <h4>Normal Mapping</h4>
       <p>The VBO stores the normals and tangents, but not the bitangents since those are calculated in the shader. The TBN matrix which transforms vectors from tangents space to world space is calculated with the following pseudocode:</p>
-      <pre><code class="language-glsl">
-      vec3 worldT = normalize( modelMatrix * inTangent );
-      vec3 worldN = normalize( inverse( transpose( modelMatrix ) ) * inNormal );
-      vec3 worldB = cross( worldN, worldT );
-      TBN         = mat3( worldT, worldB, worldN );
-      </code></pre>
+      <pre><code class="language-glsl">vec3 worldT = normalize( modelMatrix * inTangent );
+vec3 worldN = normalize( inverse( transpose( modelMatrix ) ) * inNormal );
+vec3 worldB = cross( worldN, worldT );
+TBN         = mat3( worldT, worldB, worldN );</code></pre>
+
       <p>All the blogs and tutorials we saw online multiply both the tangent and normal by just the model matrix, but we are pretty sure that since the normal does not lie on the geometry surface, just multiplying by the model matrix would skew the result for non-uniform scaling. The tangent and bitangent lie along the surface though and do not need the inverse transpose. We then just look up the normal map value, normalize to [-1, 1] and apply the matrix:</p>
-      <pre><code class="language-glsl">
+      <code class="language-glsl">
       vec3 n = texture( normalMap, texCoord );
       n      = normalize( n * 2 - 1 );
       n      = normalize( TBN * n );
-      </code></pre>
+      </code>
+      
+      <br>
       <h4>Profiling and RenderDoc Integration</h4>
       <p></p>
 
-
+      <br>
       <h2>Videos</h2>
+      <div class="center">
       <iframe width="560" height="315" src="https://www.youtube.com/embed/Du04-9DlrCA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
       <p>A short demo highlighting some of the more recent rendering features</p>
-
+      </div>
       <br>
       <!--
       <h2>Images:</h2>

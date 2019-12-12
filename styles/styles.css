@@ -37,6 +37,11 @@ nav {
     background-color: #222;
 }
 
+.center {
+    display: block;
+    margin: 0 auto;
+}
+
 nav ul {
     list-style-type: none;
     margin: 0;
