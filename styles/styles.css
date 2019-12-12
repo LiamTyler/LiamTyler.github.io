@@ -52,6 +52,11 @@ pre {
     overflow: auto;
 }
 
+iframe {
+    display: block;
+    margin: 0 auto;
+}
+
 nav ul {
     list-style-type: none;
     margin: 0;
@@ -102,11 +107,7 @@ h4 {
     margin: 2em auto;
     max-width: 66%;
 }
-#projects pre {
-    border: 1px solid black;
-    overflow: scroll;
-    padding: 1em;
-}
+
 .projectPreview {
     border: 1px solid #CCC;
     padding: 1em;

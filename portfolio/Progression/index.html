@@ -46,7 +46,7 @@
       <h2>Features</h2>
       <h5>Note: for SSAO, deferred rendering, and normal mapping I partnered up with <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for them as part of a project</h5>
       
-      <h4>Screen Space Ambient Occlusion (SSAO)</h4>
+      <h3>Screen Space Ambient Occlusion (SSAO)</h3>
       <p>We took the approach described in <a href="https://learnopengl.com/Advanced-Lighting/SSAO">this</a> tutorial. This method randomly samples many nearby points for each pixel, and return which fraction of those samples were occluded by other nearby geometry. This can be seen in the following image:</p>
       <div class="centerText">
         <img class="capWidth" src="ssao_hemisphere.png">
@@ -54,23 +54,23 @@
       </div>
       <p>To sample random points within this hemisphere surrounding each pixel, we need to use random offsets. Since it would be impractical to generate or store random offsets for each possible orientation of the hemisphere, we instead create a "kernel", which is a buffer of random offsets in the tangent space. These offsets are scaled so that most of them are closer to the center: </p>
       <pre><code class="language-c++">
-        const float numSamples = 32;
-        std::vector< glm::vec4 > kernel( numSamples );
-        for ( int i = 0; i < (int) numSamples; ++i )
-        {
-            glm::vec3 sample( randomFloat() * 2 - 1, randomFloat() * 2 - 1, randomFloat() );
-            sample      = randomFloat() * glm::normalize( sample );
-            float scale = lerp( 0.1, 1.0, ( i / numSamples ) * ( i / numSamples );
-            kernel[i]   = glm::vec4( scale * sample, 0 );
-        }
+const float numSamples = 32;
+std::vector< glm::vec4 > kernel( numSamples );
+for ( int i = 0; i < (int) numSamples; ++i )
+{
+    glm::vec3 sample( randomFloat() * 2 - 1, randomFloat() * 2 - 1, randomFloat() );
+    sample      = randomFloat() * glm::normalize( sample );
+    float scale = lerp( 0.1, 1.0, ( i / numSamples ) * ( i / numSamples );
+    kernel[i]   = glm::vec4( scale * sample, 0 );
+}
       </pre></code>
       <p>We also do not want every single point to have the example same random samples, since this might cause some structure or artifacts in the final image, and require us to use more samples to get rid of these issues. To accomplish this, the hemisphere is randomly rotated before sampling. No rotation matrix is actually used, but instead random tangent vectors are calculated. Again it would be a lot more memory to store a tangent for every pixel, so we only create a 4x4 texture of tangents, and repeat them across the image:</p>
       <pre><code class="language-c++">
-        std::vector< glm::vec4 > noise( 16 );
-        for ( int i = 0; i < 16; ++i )
-        {
-            noise[i] = glm::vec4( randomFloats( generator ) * 2 - 1, randomFloats( generator ) * 2 - 1, 0, 0 );
-        }
+std::vector< glm::vec4 > noise( 16 );
+for ( int i = 0; i < 16; ++i )
+{
+    noise[i] = glm::vec4( randomFloats( generator ) * 2 - 1, randomFloats( generator ) * 2 - 1, 0, 0 );
+}
       </pre></code>
       <p>After uploading the kernel and tangent texture, the actual SSAO shader needs to be run. First we need to do Gramm-Schmidt to generate the orthonormal basis:</p>
       <pre><code class="language-glsl">
@@ -81,21 +81,21 @@
       </code></pre>
       <p>One interesting note here is that N is in view space, and to my understanding the tutorial we followed chose z = 0 for the random vectors so that the random vector would never be parallel to N. If they were paralle, then T would be normalizing the vector ( 0, 0, 0 ) and our basis would be defficient. View space vectors can have z <= 0 though, so I don't understand how we can guarantee an orthonormal basis here, or why view space is advantageous. It looks fine though, so we didn't change anything with it. The next step is actually sample the points, and add up how many of them are occluded by the actual saved geometry:</p>
       <pre><code class="language-glsl">
-        float SCALE_RADIUS = 0.5;
-        float occlusion = 0;
-        for ( int i = 0; i < 32; ++i )
-        {
-            vec3 offsetPos  = fragPos + TBN * uboSSAOKernel.samples[i].xyz * SCALE_RADIUS;
-            
-            vec4 projCoords = matrices.P * vec4( offsetPos, 1 );
-            projCoords.xyz /= projCoords.w;
-            projCoords.xy   = 0.5 * projCoords.xy + vec2( 0.5 );
-            projCoords.y    = 1 - projCoords.y; // since current Vulkan viewport is inverted
-            
-            float offsetDepth = ( matrices.V * texture( worldPositions, projCoords.xy ) ).z;
-            float rangeCheck  = smoothstep(0.0f, 1.0f, SCALE_RADIUS / abs(fragPos.z - offsetDepth));
-            occlusion         += (offsetDepth >= offsetPos.z + BIAS ? 1.0f : 0.0f) * rangeCheck;
-        }
+float SCALE_RADIUS = 0.5;
+float occlusion = 0;
+for ( int i = 0; i < 32; ++i )
+{
+    vec3 offsetPos  = fragPos + TBN * uboSSAOKernel.samples[i].xyz * SCALE_RADIUS;
+    
+    vec4 projCoords = matrices.P * vec4( offsetPos, 1 );
+    projCoords.xyz /= projCoords.w;
+    projCoords.xy   = 0.5 * projCoords.xy + vec2( 0.5 );
+    projCoords.y    = 1 - projCoords.y; // since current Vulkan viewport is inverted
+    
+    float offsetDepth = ( matrices.V * texture( worldPositions, projCoords.xy ) ).z;
+    float rangeCheck  = smoothstep(0.0f, 1.0f, SCALE_RADIUS / abs(fragPos.z - offsetDepth));
+    occlusion         += (offsetDepth >= offsetPos.z + BIAS ? 1.0f : 0.0f) * rangeCheck;
+}
       </code></pre>
       <p>Another point of interest here is the "rangeCheck". An object that is occluding another won't really affect the amount of ambient light that point should receive the further away the occluder gets. As a result we want to diminish the effect of those objects. Without it you would see a dark halo surrounding the edges of every object that occludes another one. If we look at the result now however we see some problems:</p>
       <div class="centerText">
@@ -106,34 +106,13 @@
       <div class="centerText">
         <img class="capWidth" src="AO.png">
         <p>The ambient occlusion texture.</p>
-      </div>
-      <div>
-        <div class="centerTwoImages">
-          <img src="sponza_no_AO.png" style="width:100%">
-        </div>
-        <div class="centerTwoImages">
-          <img src="sponza_with_AO.png" style="width:100%">
-        </div>
+        <img class="capWidth" src="sponza_no_AO.png">
+        <img class="capWidth" src="sponza_with_AO.png">
         <p>Sponza without SSAO (left) and Sponza with SSAO (right).</p>
       </div>
-      
-      <!--
-      <div class="centerText" style="displa>
-        <div style="float: left; width: 50%; padding: 5px;">
-          <img src="no_ao_sponza.png" style="width:100%">
-        </div>
-        <div style="float: left; width: 50%; padding: 5px;">
-          <img src="ao_sponza.png" style="width:100%">
-        </div>
-        <p>Sponza without SSAO (left) and Sponza with SSAO (right).</p>
-        <img class="capWidth" src="AO.png">
-        <p>The ambient occlusion texture.</p>
-      </div>
-      -->
-      
       
       <br>
-      <h4>Deferred Rendering</h4>
+      <h3>Deferred Rendering</h3>
       <p>While I had written a tiled-deferred renderer in OpenGL, current Vulkan renderer is just regular deferred rendering without even light volumes currently. Tiled deferred or F+ is on the docket. Only just started trying to consider the GBuffer size and reduce it, but the current GBuffer looks like this:</p>
       <ul>
         <li><strong>Positions: </strong>RGBA32_FLOAT</li>
@@ -143,29 +122,31 @@
         <li><strong>Depth: </strong>32 bit</li>
       </ul>
       <p>While positions and normals do not need the alpha channel, my GPUs do not support RGB textures with optimal tiling. Initially normals were RGBA32_FLOAT, the diffuse and specular were RGBA_UNORM and RGBA16_FLOAT respectively. With each change to the gbuffer we saw the following timings:</p>
+      <div class="centerText">
       <img class="capWidth" src="gbuffer_timings.png">
       <p>Sponza timings with 4 lights in 1080p on my RTX 2080. Yes, the SSAO pass is very unoptimized currently.</p>
+      </div>
       <p>I am currently trying to figure out if 16 bit positions are okay, and play around with what I could put in the alpha channel instead of it being unused. I also want to try getting rid of the position buffer altogether and just recover it via the depth buffer.</p>
       
       <br>
-      <h4>Normal Mapping</h4>
+      <h3>Normal Mapping</h3>
       <p>The VBO stores the normals and tangents, but not the bitangents since those are calculated in the shader. The TBN matrix which transforms vectors from tangents space to world space is calculated with the following pseudocode:</p>
       <pre><code class="language-glsl">
-        vec3 worldT = normalize( modelMatrix * inTangent );
-        vec3 worldN = normalize( inverse( transpose( modelMatrix ) ) * inNormal );
-        vec3 worldB = cross( worldN, worldT );
-        TBN         = mat3( worldT, worldB, worldN );
+vec3 worldT = normalize( modelMatrix * inTangent );
+vec3 worldN = normalize( inverse( transpose( modelMatrix ) ) * inNormal );
+vec3 worldB = cross( worldN, worldT );
+TBN         = mat3( worldT, worldB, worldN );
       </code></pre>
 
       <p>All the blogs and tutorials we saw online multiply both the tangent and normal by just the model matrix, but we are pretty sure that since the normal does not lie on the geometry surface, just multiplying by the model matrix would skew the result for non-uniform scaling. The tangent and bitangent lie along the surface though and do not need the inverse transpose. We then just look up the normal map value, normalize to [-1, 1] and apply the matrix:</p>
       <pre><code class="language-glsl">
-      vec3 n = texture( normalMap, texCoord );
-      n      = normalize( n * 2 - 1 );
-      n      = normalize( TBN * n );
+vec3 n = texture( normalMap, texCoord );
+n      = normalize( n * 2 - 1 );
+n      = normalize( TBN * n );
       </code></pre>
       
       <br>
-      <h4>Profiling and RenderDoc Integration</h4>
+      <h3>Profiling and RenderDoc Integration</h3>
       <p></p>
 
       <br>
