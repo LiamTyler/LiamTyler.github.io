@@ -44,10 +44,15 @@
       <p>Code from this project can be found on Github <a href="https://github.com/LiamTyler/Progression">here</a></p>
 
       <h2>Features</h2>
-      <h5>Note: for the normal mapping, deferred rendering, and SSAO I partnered up with <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for them as part of a project</h5>
+      <h5>Note: for SSAO, deferred rendering, and normal mapping I partnered up with <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for them as part of a project</h5>
       
       <h4>Screen Space Ambient Occlusion (SSAO)</h4>
-      <p>We took the approach described in <a href="https://learnopengl.com/Advanced-Lighting/SSAO">this</a> tutorial. </p>
+      <p>We took the approach described in <a href="https://learnopengl.com/Advanced-Lighting/SSAO">this</a> tutorial. This method randomly samples many nearby points for each pixel, and return which fraction of those samples were occluded by other nearby geometry. This can be seen in the following image:</p>
+      <div class="centerText">
+        <img class="capWidth" src="ssao_hemisphere.png">
+        <p>Two example of the SSAO hemisphere for two points. Image from the tutorial above.</p>
+      </div>
+      <p>To sample random points within this hemisphere surrounding each pixel, we need to use random offsets. Since it would be impracticle to generate or store random offsets for each possible orientation of the hemisphere, we instead create a buffer of random offsets in the tangent space. </p>
       
       <div class="centerText">
         <div style="float: left; width: 50%; padding: 5px;">
@@ -60,6 +65,7 @@
         <img class="capWidth" src="sponza_AO_only.png">
         <p>The ambient occlusion texture.</p>
       </div>
+      
       
       <h4>Deferred Rendering</h4>
       <p>While I had written a tiled-deferred renderer in OpenGL, current Vulkan renderer is just regular deferred rendering without even light volumes currently. Tiled deferred or F+ is on the docket. Only just started trying to consider the GBuffer size and reduce it, but the current GBuffer looks like this:</p>
@@ -75,6 +81,7 @@
       <p>Sponza timings with 4 lights in 1080p on my RTX 2080. Yes, the SSAO pass is very unoptimized currently.</p>
       <p>I am currently trying to figure out if 16 bit positions are okay, and play around with what I could put in the alpha channel instead of it being unused. I also want to try getting rid of the position buffer altogether and just recover it via the depth buffer.</p>
       
+      
       <h4>Normal Mapping</h4>
       <p>The VBO stores the normals and tangents, but not the bitangents since those are calculated in the shader. The TBN matrix which transforms vectors from tangents space to world space is calculated with the following pseudocode:</p>
       <pre><code class="language-glsl">
@@ -82,9 +89,9 @@
       vec3 worldN = normalize( inverse( transpose( modelMatrix ) ) * inNormal );
       vec3 worldB = cross( worldN, worldT );
       TBN         = mat3( worldT, worldB, worldN );
-      <pre><code class="language-glsl">
+      </code></pre>
       <p>All the blogs and tutorials we saw online multiply both the tangent and normal by just the model matrix, but we are pretty sure that since the normal does not lie on the geometry surface, just multiplying by the model matrix would skew the result for non-uniform scaling. The tangent and bitangent lie along the surface though and do not need the inverse transpose. We then just look up the normal map value, normalize to [-1, 1] and apply the matrix:</p>
-      <code>
+      <pre><code class="language-glsl">
       vec3 n = texture( normalMap, texCoord );
       n      = normalize( n * 2 - 1 );
       n      = normalize( TBN * n );
@@ -98,23 +105,14 @@
       <p>A short demo highlighting some of the more recent rendering features</p>
 
       <br>
+      <!--
       <h2>Images:</h2>
       <div class="centerText">
-        <img class="capWidth" src="robot_closeup.png">
-        <p>Closeup of one of the robots during a demo scene.</p>
-        <hr>
         <img class="capWidth" src="robots_bloom.png">
         <p>Robots collecting each of the five lights. Robots plan path using TTC algorithm.</p>
         <hr>
-        <img class="capWidth" src="all_robots.png">
-        <p>End of the robot collecting lights demo.</p>
-        <hr>
-        <img class="capWidth" src="point_shadows.png">
-        <p>First implementation of dynamic point shadows.</p>
-        <hr>
-        <img class="capWidth" src="bouncing_lights.png">
-        <p>Several thousand lights bouncing lights while staying over 30 FPS with the tile deferred renderer.</p>
         <hr>
       </div>
+      -->
   </body>
 </html>
