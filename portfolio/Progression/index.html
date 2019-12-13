@@ -132,7 +132,38 @@ for ( int i = 0; i < 32; ++i )
       
       <br>
       <h3>Directional Light Shadow Mapping</h3>
-      
+      <p>Currently the directional light is the only kind of light that can have a shadow map, and it defaults to a 4K map. It is a regular implementation of basic shadow mapping where the scene is rendered once from the perspective of the light. This involves creating a view matrix pointing in the direction of the light, and an orthographic project matrix. During the regular lighting pass, each pixel is transformed into that light's normalized device coordinate space using those view and projection matrices. This lets you look up the compare the pixel's distance from the light to the value saved in the shadow map. If the saved value is closer to the camera than the pixel, that means the pixel is occluded. This can be seen in the following code:</p>
+      <pre><code class="language-glsl">
+float ShadowAmount( in const vec4 posInLightSpace, in sampler2D shadowMap ) {
+    vec3 ndc             = posInLightSpace.xyz / posInLightSpace.w;
+    vec3 projCoords      = .5 * ndc + vec3( .5 );
+    projCoords.y         = 1 - projCoords.y; // Account for flip in projection matrix
+    float currentDepth   = ndc.z; // Already between 0 and 1
+    
+    if ( currentDepth > 1 )
+        return 0;
+    
+    vec2 dUV = 1.0 / textureSize( shadowMap, 0 );
+    float totalShadowStrength = 0;
+    for ( int r = -1; r <= 1; ++r ) {
+        for ( int c = -1; c <= 1; ++c ) {
+            vec2 coords = projCoords.xy + vec2( c * dUV.x, r * dUV.y );
+            float d = texture( shadowMap, coords ).r;
+            if ( d < currentDepth )
+                totalShadowStrength += 1.0;
+        }
+    }
+    
+    return totalShadowStrength / ( PCF_FULL_WIDTH * PCF_FULL_WIDTH );
+}
+      </code></pre>
+      <p>A few more interesting aspects and related thoughts of this are:</p>
+      <ol>
+        <li>While a directional light doesn't really have a position or bounds, you have to define a non-infinite frustum with the view and projection matrices. In fact the smaller the frustum the more texels per meter in world space you will have and the better your results will look. Unfortunately there is no automatic calculation of this frustum curently in the engine. In the video further down this page, the moving light is controlled in a Lua script, which is pretty annoying. Automatic frustum calculation is on this TODO list.</li>
+        <li>Normally you have to add a bias to avoid shadow acne artifacts. A convenient thing about Vulkan is that it lets you easily set constant and slope bias factors. I use those, which means that the values saved into the shadow map are already pre-biased, and there is no need to change them in the lighting pass shader.</li>
+        <li>Shadow passes are the reason that the VBOs of models are non-interleaved. I haven't actually profiled it, but I suspected that in a depth-only pass where you only need vertex positions, it would be better cache performance if all of the positions were packed tightly together.</li>
+        <li>Currently I am doing PCF filtering by averaging a 3x3 kernel. Even with a 4K map and tight frustum bounds, the blurines from this is easily near the camera. As a result cascaded shadow maps are also on the TODO list.</li>
+      </ol>
       
       <br>
       <h3>Normal Mapping</h3>
