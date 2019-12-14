@@ -47,7 +47,7 @@
       <h5>Note: for SSAO, deferred rendering, shadow mapping, and normal mapping I partnered up with <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for them as part of a project</h5>
       
       <h3>Screen Space Ambient Occlusion (SSAO)</h3>
-      <p>We took the approach described in <a href="https://learnopengl.com/Advanced-Lighting/SSAO">this</a> tutorial. This method randomly samples many nearby points for each pixel, and return which fraction of those samples were occluded by other nearby geometry. This can be seen in the following image:</p>
+      <p>SSAO is a technique which simulates the amount of ambient light entering a particular point on a surface. Its goal is to calculate how much ambient light will reach a surface, which can vary a lot for surfaces such as flat floors compared crevices and folds. We took the approach described in <a href="https://learnopengl.com/Advanced-Lighting/SSAO">this</a> tutorial. This method randomly samples many nearby points for each pixel, and return which fraction of those samples were occluded by other nearby geometry. This can be seen in the following image:</p>
       <div class="centerText">
         <img class="capWidth" src="ssao_hemisphere.png">
         <p>Two examples of the SSAO hemisphere for two points. Image from the tutorial above.</p>
@@ -80,7 +80,7 @@ vec3 T         = normalize( randomVec - N * dot( N, randomVec ) );
 vec3 B         = cross( N, T );
 mat3 TBN       = mat3( T, B, N );
       </code></pre>
-      <p>One interesting note here is that N is in view space, and to my understanding the tutorial we followed chose z = 0 for the random vectors so that the random vector would never be parallel to N. If they were paralle, then T would be normalizing the vector ( 0, 0, 0 ) and our basis would be defficient. View space vectors can have z <= 0 though, so I don't understand how we can guarantee an orthonormal basis here, or why view space is advantageous. It looks fine though, so we didn't change anything with it. The next step is actually sample the points, and add up how many of them are occluded by the actual saved geometry:</p>
+      <p>One interesting note here is that N is in view space, and to my understanding the tutorial we followed chose z = 0 for the random vectors so that the random vector would never be parallel to N. If they were paralle, then T would be normalizing the vector ( 0, 0, 0 ) and our basis would be defficient. View space vectors can have z <= 0 though, so we don't understand how we can guarantee an orthonormal basis here, or why view space is advantageous. It looks fine though, so we didn't change anything with it. The next step is actually sample the points, and add up how many of them are occluded by the actual saved geometry:</p>
       <pre><code class="language-glsl">
 float SCALE_RADIUS = 0.5;
 float occlusion = 0;
@@ -115,7 +115,7 @@ for ( int i = 0; i < 32; ++i )
       
       <br>
       <h3>Deferred Rendering</h3>
-      <p>While I had written a tiled-deferred renderer in OpenGL, current Vulkan renderer is just regular deferred rendering without even light volumes currently. Tiled deferred or F+ is on the docket. Only just started trying to consider the GBuffer size and reduce it, but the current GBuffer looks like this:</p>
+      <p>Deferred rendering is a method of delaying, or deferring, the lighting pass of the data to be rendered. By pre-computing all necessary information to light a pixel, the lighting calculations for that pixel only need to be calculated once, which can be very advantageous when a scene has many lights. While I had written a tiled-deferred renderer in OpenGL, current Vulkan renderer is just regular deferred rendering without even light volumes currently. Tiled deferred or F+ is on the docket. Only just started trying to consider the GBuffer size and reduce it, but the current GBuffer looks like this:</p>
       <ul>
         <li><strong>Positions: </strong>RGBA32_FLOAT</li>
         <li><strong>Normals: </strong>RGBA8_UNORM (compressed using 24-bit octahedron encoding described in <a href="http://jcgt.org/published/0003/02/01/paper.pdf">this</a> paper)</li>
@@ -128,7 +128,7 @@ for ( int i = 0; i < 32; ++i )
       <img class="capWidth" src="sponza_timings.png">
       <p>Sponza timings with 5 lights in 1080p on my RTX 2080. Yes, the SSAO pass isn't the greatest currently.</p>
       </div>
-      <p>Given the speed up from non-trivial normal encoding, I thought I would see the same thing for packing the diffuse and specular color into one 16-bit RGBA texture. On average however, it is the same as with using two textures. Since it saves 32 bits per pixel however, I kept it. I am currently trying to figure out if 16 bit positions are okay, and play around with what I could put in the alpha channel instead of it being unused. I also want to try getting rid of the position buffer altogether and just recover it via the depth buffer.</p>
+      <p>Given the speed up from non-trivial normal encoding, we thought that there would be a similar speed up from packing the diffuse and specular color into one 16-bit RGBA texture. On average however, it is the same as with using two textures. Since it saves 32 bits per pixel however, we kept it. We are currently trying to figure out if 16 bit positions are okay, and play around with what could be put in the alpha channel instead of it being unused. I also want to try getting rid of the position buffer altogether and just recover it via the depth buffer.</p>
       
       <br>
       <h3>Directional Light Shadow Mapping</h3>
@@ -160,9 +160,9 @@ float ShadowAmount( in const vec4 posInLightSpace, in sampler2D shadowMap ) {
       <p>A few more interesting aspects and related thoughts of this are:</p>
       <ol>
         <li>While a directional light doesn't really have a position or bounds, you have to define a non-infinite frustum with the view and projection matrices. In fact the smaller the frustum the more texels per meter in world space you will have and the better your results will look. Unfortunately there is no automatic calculation of this frustum curently in the engine. In the video further down this page, the moving light is controlled in a Lua script, which is pretty annoying. Automatic frustum calculation is on this TODO list.</li>
-        <li>Normally you have to add a bias to avoid shadow acne artifacts. A convenient thing about Vulkan is that it lets you easily set constant and slope bias factors. I use those, which means that the values saved into the shadow map are already pre-biased, and there is no need to change them in the lighting pass shader.</li>
-        <li>Shadow passes are the reason that the VBOs of models are non-interleaved. I haven't actually profiled it, but I suspected that in a depth-only pass where you only need vertex positions, it would be better cache performance if all of the positions were packed tightly together.</li>
-        <li>Currently I am doing PCF filtering by averaging a 3x3 kernel. Even with a 4K map and tight frustum bounds, the blurines from this is easily near the camera. As a result cascaded shadow maps are also on the TODO list.</li>
+        <li>Normally you have to add a bias to avoid shadow acne artifacts. A convenient thing about Vulkan is that it lets you easily set constant and slope bias factors. We use those, which means that the values saved into the shadow map are already pre-biased, and there is no need to change them in the lighting pass shader.</li>
+        <li>Shadow passes are the reason that the VBOs of models are non-interleaved. We haven't actually profiled it, but we suspected that in a depth-only pass where you only need vertex positions, it would be better cache performance if all of the positions were packed tightly together.</li>
+        <li>Currently we are doing PCF filtering by averaging a 3x3 kernel. Even with a 4K map and tight frustum bounds, the blurines from this is easily near the camera. As a result cascaded shadow maps are also on the TODO list.</li>
       </ol>
       
       <br>
@@ -250,6 +250,8 @@ PG_PROFILE_GET_RESULTS();
       </ul>
     
     </div>
+    
+    <a href="https://docs.google.com/document/d/1bxThXZLe1h6h07qwt4oV_cJ69FAzK-kLgyhuhVmnoMU/edit">Link to the rest of the 8980 writeup.</a>
     <script src='/scripts/code_snippet_formatter.js'></script>
   </body>
 </html>
