@@ -44,7 +44,7 @@
       <p>Code from this project can be found on Github <a href="https://github.com/LiamTyler/Progression">here</a></p>
 
       <h2>Features</h2>
-      <h5>Note: for SSAO, deferred rendering, shadow mapping, and normal mapping I partnered up with <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> for them as part of a project</h5>
+      <h5>Shout out to <a href="https://sites.google.com/umn.edu/zachsportfolio/home?fbclid=IwAR1FnQC03IqJdBMhxeNZn87i8_SSe2-Nqb-QXauz415a9FeM0b06g5vd0L0">Zach Chavis</a> who partnered up with me for the next few features, especially SSAO!</h5>
       
       <h3>Screen Space Ambient Occlusion (SSAO)</h3>
       <p>SSAO is a technique which simulates the amount of ambient light entering a particular point on a surface. Its goal is to calculate how much ambient light will reach a surface, which can vary a lot for surfaces such as flat floors compared crevices and folds. We took the approach described in <a href="https://learnopengl.com/Advanced-Lighting/SSAO">this</a> tutorial. This method randomly samples many nearby points for each pixel, and return which fraction of those samples were occluded by other nearby geometry. This can be seen in the following image:</p>
@@ -80,7 +80,7 @@ vec3 T         = normalize( randomVec - N * dot( N, randomVec ) );
 vec3 B         = cross( N, T );
 mat3 TBN       = mat3( T, B, N );
       </code></pre>
-      <p>One interesting note here is that N is in view space, and to my understanding the tutorial we followed chose z = 0 for the random vectors so that the random vector would never be parallel to N. If they were paralle, then T would be normalizing the vector ( 0, 0, 0 ) and our basis would be defficient. View space vectors can have z <= 0 though, so we don't understand how we can guarantee an orthonormal basis here, or why view space is advantageous. It looks fine though, so we didn't change anything with it. The next step is actually sample the points, and add up how many of them are occluded by the actual saved geometry:</p>
+      <p>One interesting note here is that N is in view space, and to my understanding the tutorial we followed chose z = 0 for the random vectors so that the random vector would never be parallel to N. If they were parallel, then T would be normalizing the vector ( 0, 0, 0 ) and our basis would be defficient. View space vectors can have z <= 0 though, so we don't understand how we can guarantee an orthonormal basis here, or why view space is advantageous. It looks fine though, so we didn't change anything with it. The next step is actually sample the points, and add up how many of them are occluded by the actual saved geometry:</p>
       <pre><code class="language-glsl">
 float SCALE_RADIUS = 0.5;
 float occlusion = 0;
@@ -248,8 +248,6 @@ PG_PROFILE_GET_RESULTS();
         <li>cpptoml</li>
         <li>MemoryMapped by Stephan Brumme</li>
       </ul>
-    
-        <a href="https://docs.google.com/document/d/1bxThXZLe1h6h07qwt4oV_cJ69FAzK-kLgyhuhVmnoMU/edit">Link to the rest of the 8980 writeup.</a>
     </div>
     
     
