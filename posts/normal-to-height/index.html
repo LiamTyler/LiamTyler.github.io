@@ -21,16 +21,16 @@
 <meta name="keywords" content="">
 <meta name="description" content="Basics In this post, I want to explain how to take a normal map and generate its corresponding height map (also called displacement map). There are multiple ways to achieve this, but the one I&rsquo;ll be covering in this post is the method that Danny Chan presented in Advances in Real Time Rendering at Siggraph 2018 (link here, page 16). It&rsquo;s also the same method that the Call of Duty engine still uses today to generate the vast majority of its height maps.">
 <meta name="author" content="">
-<link rel="canonical" href="https://liamtyler.com/posts/normal-to-height/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.4599eadb9eb2ad3d0a8d6827b41a8fda8f2f4af226b63466c09c5fddbc8706b7.css" integrity="sha256-RZnq256yrT0KjWgntBqP2o8vSvImtjRmwJxf3byHBrc=" rel="preload stylesheet" as="style">
-<link rel="icon" href="https://liamtyler.com/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="https://liamtyler.com/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="https://liamtyler.com/favicon-32x32.png">
-<link rel="apple-touch-icon" href="https://liamtyler.com/apple-touch-icon.png">
-<link rel="mask-icon" href="https://liamtyler.com/safari-pinned-tab.svg">
+<link rel="canonical" href="https://liamtyler.github.io/posts/normal-to-height/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://liamtyler.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://liamtyler.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://liamtyler.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://liamtyler.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://liamtyler.github.io/safari-pinned-tab.svg">
 <meta name="theme-color" content="#2e2e33">
 <meta name="msapplication-TileColor" content="#2e2e33">
-<link rel="alternate" hreflang="en" href="https://liamtyler.com/posts/normal-to-height/">
+<link rel="alternate" hreflang="en" href="https://liamtyler.github.io/posts/normal-to-height/">
 <noscript>
     <style>
         #theme-toggle,
@@ -70,7 +70,7 @@
 </noscript><meta property="og:title" content="Generating Height Maps From Normal Maps" />
 <meta property="og:description" content="Basics In this post, I want to explain how to take a normal map and generate its corresponding height map (also called displacement map). There are multiple ways to achieve this, but the one I&rsquo;ll be covering in this post is the method that Danny Chan presented in Advances in Real Time Rendering at Siggraph 2018 (link here, page 16). It&rsquo;s also the same method that the Call of Duty engine still uses today to generate the vast majority of its height maps." />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="https://liamtyler.com/posts/normal-to-height/" /><meta property="article:section" content="posts" />
+<meta property="og:url" content="https://liamtyler.github.io/posts/normal-to-height/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2024-04-05T00:00:00+00:00" />
 <meta property="article:modified_time" content="2024-04-05T00:00:00+00:00" />
 
@@ -88,13 +88,13 @@
       "@type": "ListItem",
       "position":  1 ,
       "name": "Posts",
-      "item": "https://liamtyler.com/posts/"
+      "item": "https://liamtyler.github.io/posts/"
     }, 
     {
       "@type": "ListItem",
       "position":  2 ,
       "name": "Generating Height Maps From Normal Maps",
-      "item": "https://liamtyler.com/posts/normal-to-height/"
+      "item": "https://liamtyler.github.io/posts/normal-to-height/"
     }
   ]
 }
@@ -116,14 +116,14 @@
   "dateModified": "2024-04-05T00:00:00Z",
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://liamtyler.com/posts/normal-to-height/"
+    "@id": "https://liamtyler.github.io/posts/normal-to-height/"
   },
   "publisher": {
     "@type": "Organization",
     "name": "Liam's Graphics Blog",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://liamtyler.com/favicon.ico"
+      "url": "https://liamtyler.github.io/favicon.ico"
     }
   }
 }
@@ -145,7 +145,7 @@
 <header class="header">
     <nav class="nav">
         <div class="logo">
-            <a href="https://liamtyler.com/" accesskey="h" title="Liam&#39;s Graphics Blog (Alt + H)">Liam&#39;s Graphics Blog</a>
+            <a href="https://liamtyler.github.io/" accesskey="h" title="Liam&#39;s Graphics Blog (Alt + H)">Liam&#39;s Graphics Blog</a>
             <div class="logo-switches">
                 <button id="theme-toggle" accesskey="t" title="(Alt + T)">
                     <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
@@ -171,17 +171,17 @@
         </div>
         <ul id="menu">
             <li>
-                <a href="https://liamtyler.com/posts/" title="Posts">
+                <a href="https://liamtyler.github.io/posts/" title="Posts">
                     <span>Posts</span>
                 </a>
             </li>
             <li>
-                <a href="https://liamtyler.com/about/" title="About">
+                <a href="https://liamtyler.github.io/about/" title="About">
                     <span>About</span>
                 </a>
             </li>
             <li>
-                <a href="https://liamtyler.com/search/" title="Search (Alt &#43; /)" accesskey=/>
+                <a href="https://liamtyler.github.io/search/" title="Search (Alt &#43; /)" accesskey=/>
                     <span>Search</span>
                 </a>
             </li>
@@ -696,7 +696,7 @@ Since we have the normal map as input, we know the slope (height derivative) in 
     </main>
     
 <footer class="footer">
-    <span>&copy; 2024 <a href="https://liamtyler.com/">Liam&#39;s Graphics Blog</a></span>
+    <span>&copy; 2024 <a href="https://liamtyler.github.io/">Liam&#39;s Graphics Blog</a></span>
     <span>
         Powered by
         <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
