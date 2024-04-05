@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Posts on Liam&#39;s Graphics Blog</title>
+    <link>https://liamtyler.com/posts/</link>
+    <description>Recent content in Posts on Liam&#39;s Graphics Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 05 Apr 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://liamtyler.com/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Generating Height Maps From Normal Maps</title>
+      <link>https://liamtyler.com/posts/normal-to-height/</link>
+      <pubDate>Fri, 05 Apr 2024 00:00:00 +0000</pubDate>
+      <guid>https://liamtyler.com/posts/normal-to-height/</guid>
+      <description>Basics In this post, I want to explain how to take a normal map and generate its corresponding height map (also called displacement map). There are multiple ways to achieve this, but the one I&amp;rsquo;ll be covering in this post is the method that Danny Chan presented in Advances in Real Time Rendering at Siggraph 2018 (link here, page 16). It&amp;rsquo;s also the same method that the Call of Duty engine still uses today to generate the vast majority of its height maps.</description>
+    </item>
+  </channel>
+</rss>
