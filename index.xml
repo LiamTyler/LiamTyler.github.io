@@ -6,8 +6,15 @@
     <description>Recent content on Liam&#39;s Graphics Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 05 Apr 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 07 Jul 2024 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://liamtyler.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Asset Pipelines Part 1</title>
+      <link>https://liamtyler.github.io/posts/asset_pipeline_part_1/</link>
+      <pubDate>Sun, 07 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>https://liamtyler.github.io/posts/asset_pipeline_part_1/</guid>
+      <description>Asset pipelines are one of the pieces of game development I don&amp;rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &amp;ldquo;convert your assets into binary packages, compress them, and load them at runtime,&amp;rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&amp;rsquo;d argue it has the single biggest impact on development.</description>
+    </item>
     <item>
       <title>About Me</title>
       <link>https://liamtyler.github.io/about/</link>
@@ -20,7 +27,7 @@
       <link>https://liamtyler.github.io/posts/normal-to-height/</link>
       <pubDate>Fri, 05 Apr 2024 00:00:00 +0000</pubDate>
       <guid>https://liamtyler.github.io/posts/normal-to-height/</guid>
-      <description>Basics In this post, I want to explain how to take a normal map and generate its corresponding height map (also called displacement map). There are multiple ways to achieve this, but the one I&amp;rsquo;ll be covering in this post is the method that Danny Chan presented in Advances in Real Time Rendering at Siggraph 2018 (link here, page 16). It&amp;rsquo;s also the same method that the Call of Duty engine still uses today to generate the vast majority of its height maps.</description>
+      <description>In this post, I want to explain how to take a normal map and generate its corresponding height map (also called displacement map). There are multiple ways to achieve this, but the one I&amp;rsquo;ll be covering in this post is the method that Danny Chan presented in Advances in Real Time Rendering at Siggraph 2018 (link here, page 16). It&amp;rsquo;s also the same method that the Call of Duty engine still uses today to generate the vast majority of its height maps.</description>
     </item>
   </channel>
 </rss>

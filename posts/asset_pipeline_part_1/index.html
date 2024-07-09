@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head>
+	
+      <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)']]                  
+    }
+  };
+</script>
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Asset Pipelines Part 1 | Liam&#39;s Graphics Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="Asset pipelines are one of the pieces of game development I don&rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &ldquo;convert your assets into binary packages, compress them, and load them at runtime,&rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&rsquo;d argue it has the single biggest impact on development.">
+<meta name="author" content="">
+<link rel="canonical" href="https://liamtyler.github.io/posts/asset_pipeline_part_1/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://liamtyler.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://liamtyler.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://liamtyler.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://liamtyler.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://liamtyler.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://liamtyler.github.io/posts/asset_pipeline_part_1/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1738KLC2DV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-1738KLC2DV', { 'anonymize_ip': false });
+}
+</script>
+<meta property="og:title" content="Asset Pipelines Part 1" />
+<meta property="og:description" content="Asset pipelines are one of the pieces of game development I don&rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &ldquo;convert your assets into binary packages, compress them, and load them at runtime,&rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&rsquo;d argue it has the single biggest impact on development." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://liamtyler.github.io/posts/asset_pipeline_part_1/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2024-07-07T00:00:00+00:00" />
+<meta property="article:modified_time" content="2024-07-07T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Asset Pipelines Part 1"/>
+<meta name="twitter:description" content="Asset pipelines are one of the pieces of game development I don&rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &ldquo;convert your assets into binary packages, compress them, and load them at runtime,&rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&rsquo;d argue it has the single biggest impact on development."/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://liamtyler.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Asset Pipelines Part 1",
+      "item": "https://liamtyler.github.io/posts/asset_pipeline_part_1/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Asset Pipelines Part 1",
+  "name": "Asset Pipelines Part 1",
+  "description": "Asset pipelines are one of the pieces of game development I don\u0026rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: \u0026ldquo;convert your assets into binary packages, compress them, and load them at runtime,\u0026rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I\u0026rsquo;d argue it has the single biggest impact on development.",
+  "keywords": [
+    
+  ],
+  "articleBody": "Asset pipelines are one of the pieces of game development I don’t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: “convert your assets into binary packages, compress them, and load them at runtime,” but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I’d argue it has the single biggest impact on development. How fast can the game load? How long do you have to wait to see the results of a change you make? How quickly can people add new assets? How quickly can developers add new asset types? All of these have a huge impact on both artists and programmers alike.\nBecause of this, in this post, I want to walk through how I handle assets in my little hobby engine called Progression. It doesn’t introduce any novel ideas, but I hope by sharing it, people can learn a bit and get more ideas of what to do (and what not to do) for their own asset pipelines. In this part 1 post, I will cover the overall asset pipeline, focusing on how the Converter is structured. In part 2 I will go over more specifics of how individual assets are converted (like how textures are composited and compressed).\nContents High-Level Goals Before Asset Conversion Asset Files Parsing .paf Files Scanning The Scene For Used Assets Referenced Assets Non-Inferable Assets Asset Conversion What Exactly Is A Converted Asset Is The Asset Is Out-Of-Date Asset Versioning Finally Converting The Asset Common Pitfall Parallelization Creating The Fastfiles Inter-Asset Dependencies + Asset Ordering Versioning Getting Assets In Engine A Few Final Remarks High-Level Goals It’s important to realize what you want most out of your asset pipeline. The entire reason I made one in the first place, is because slow iteration times make my brain short-circuit. There’s nothing more frustrating than making a tiny change and then needing to wait several seconds (or often minutes at real studios) to see if it worked. That’s why for me, the number one goal was to have fast load times. As for the other aspects:\nConvert Times: Medium priority for me, since it directly impacts iteration speed but happens less often (for me) than booting the game. If you’re in a studio with many people converting? I’d argue it should be extremely high priority, though it often seems to get pushed to the side. Runtime Performance and Quality: High priority. How much you do offline directly impacts how fast the engine can process and render things. I usually make the choice to favor high FPS, but if you find yourself annoyed at long convert times, then it can definitely be beneficial to sacrifice a little FPS for faster iteration times, especially in development builds. Disk Size: Low priority, since I’m just making small demos and not shipping a game. I’m actually really passionate about this for real studios (the Call of Duty download sizes make me want to cry) and I think compression is super cool. But for a hobby engine? It hardly matters until you’re about to ship. Ease of Adding New Assets and Asset Types: Low priority, since I just do small scenes, and rarely need to add new asset types after the initial set (textures, models, pipelines, scripts, etc). Useability: Medium-high priority. I wanted a simple and consistent interface to access assets, both in the engine C++ code, and in game scripts. Before Asset Conversion So how does this all work in my engine? Well, there are 3 main executables:\nEngine.exe: the game Converter.exe: runs before the game. Responsible for processing all of the assets that a scene will need when loaded in the Engine. It loads them, converts them all to binary, and groups them into binary packages. I call those packages “Fastfiles”, because that was what they were called in CoD, and I got used to it. ModelExporter.exe: responsible for taking source model files (.obj, .fbx, .gltf, etc) and converting them into a common model file format (.pmodel) that the Converter can then use. This could have all been part of the Converter, but parsing model files can be really involved and sometimes the output can need some cleanup before being used in your real pipeline. So, it was helpful to have as a separate executable that runs once on every model you download, and then never again. We’ll walk through from the beginning of the pipeline when the Converter starts up, to loading a fastfile in the Engine. The ModelExporter won’t be discussed further here.\nAsset Files In order to use an asset in Progression, it first has to be described in a Progression Asset File (.paf). These are just JSON text files which contain all of the info needed to load an asset. I don’t really recommend JSON in hindsight, but it is convenient to use something like json or markup languages that already have fast parsers written for them. Here is an example of a couple assets:\n[{ \"Image\": { \"name\": \"kloppenheim\", \"equirectangularFilename\": \"images/skies/kloppenheim_06_2k.exr\", \"semantic\": \"ENVIRONMENT_MAP\" }}, { \"Pipeline\": { \"name\": \"frustum_cull_meshes\", \"computeShader\": \"frustum_cull_meshes.comp\" }}] You can see that each asset first defines the AssetType (Image and Pipeline above). Every asset also needs to have a name. In my engine, the name is the GUID. Different asset types can share the same name, but not two assets within the same type. I know some people use hashes for GUIDs, but I find using plain text names extremely convenient for readability, searchability, and debugging. I highly recommend them. Beyond the name, the parameters are specific to the asset and are used to define how to load the asset. These JSON definitions are directly parsed into [AssetType]CreateInfo structures which look like this:\nstruct BaseAssetCreateInfo { string name; }; struct ModelCreateInfo : public BaseAssetCreateInfo { string filename; // relative path to pmodel file bool recalculateNormals = false; }; ... So the first thing the Converter does, is parse every single .paf file into a bunch of [AssetType]CreateInfo structs. This defines the list of assets that a scene can reference, and all the info needed to load them, if so.\nParsing .paf Files How exactly you go from JSON -\u003e CreateInfo isn’t super important, so I’ll just cover the main points here. The full code for this can be seen here in asset_parer.hpp, asset_parser.cpp, and asset_file_database.cpp.\nJust like how each asset type defined an [AssetType]CreateInfo struct that derived from BaseAssetCreateInfo, each type also defines an [AssetType]Parser that derives from BaseAssetParser. This is just so we can hold the parsers in a single array BaseAssetParser* g_assetParsers[ASSET_TYPE_COUNT], and then call a virtual Parse function that parses the JSON and returns a filled out [AssetType]CreateInfo. The caveat is that there is one extra level of inheritance with a templated class, to actually allocate the specific CreateInfo type.\nOne interesting aspect to consider here is inheritance (or parenting) in the JSON itself. Say you spent a lot of time filling out a complicated asset with many parameters. Later on it turns out you need to make 3 more just like the first one, with only 1-2 parameters changed. You could copy and paste the original asset definition 3 times, or you could declare that the 3 new assets inherit from that original asset. That way every parameter is copied except the name, and you only have to specify new parameters instead of all of them. In Progression this is done by specifying a “parent” parameter in the JSON. Then in the code, it is used like this:\nstd::shared_ptr\u003cBaseAssetCreateInfo\u003e parentCreateInfo = nullptr; if ( value.HasMember( \"parent\" ) ) parentCreateInfo = FindAssetInfo( assetType, value[\"parent\"].GetString() ); std::shared_ptr\u003cBaseAssetCreateInfo\u003e info; info = g_assetParsers[assetType]-\u003eParse( value, parentCreateInfo ); ... ... virtual BaseInfoPtr Parse( const rapidjson::Value\u0026 value, ConstBaseInfoPtr parentCreateInfo ) override { // create the specific [AssetType]CreateInfo, not a BaseAssetCreateInfo auto info = std::make_shared\u003cDerivedInfo\u003e(); // if this asset has a parent, copy all of the parameters except the name if ( parentCreateInfo ) *info = *std::static_pointer_cast\u003cconst DerivedInfo\u003e( parentCreateInfo ); const std::string assetName = value[\"name\"].GetString(); info-\u003ename = assetName; // finally, fill out the createInfo data by parsing the JSON return ParseInternal( value, info ) ? info : nullptr; } The caveat here, is that I only do a single-pass over the asset files. So, if an asset wants to use a parent, that parent must be defined earlier in the same asset file. I personally don’t mind this restriction, and I even think it helps keep things more contained. I definitely remember artists complaining about this at SHG though, which also used single pass asset parsing.\nScanning The Scene For Used Assets Now that we have the possible assets parsed and ready, the next step is to actually figure out which of those are needed for the scene. In my pipeline, the Converter is run per-scene like so: Converter.exe [sceneName]. My scene files are also JSON:\n[{ \"Camera\": { \"position\": [ -15, -25, 0 ], \"rotation\": [ 0, 0, 0 ], \"nearPlane\": 0.02 }}, { \"Skybox\": \"kloppenheim\" }, { \"Script\": \"cameraController\" }, { \"DirectionalLight\": { \"color\": [ 1, 1, 1 ], \"direction\": [ 0, 0, -1 ] } }, { \"Entity\": { \"NameComponent\": \"dragon\", \"Transform\": { \"position\": [ 3, 0, 0 ], \"rotation\": [ 90, 0, 90 ], \"scale\": [ 1, 1, 1 ] }, \"ModelRenderer\": { \"model\": \"dragon\", \"material\": \"blue\" } }}] So in the example scene above, the converter would need to convert: the image ‘kloppenheim, the script ‘cameraController’, the model ‘dragon’, and the material ‘blue’.\nReferenced Assets Assets can also implicitly reference other ones, so once the scene is parsed we call AddReferencedAssets on each of these assets. For example:\nvoid GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr\u0026 imageInfo ) { if ( imageInfo-\u003esemantic == GfxImageSemantic::ENVIRONMENT_MAP ) { auto irradianceInfo = std::make_shared\u003cGfxImageCreateInfo\u003e( *imageInfo ); irradianceInfo-\u003ename = imageInfo-\u003ename + \"_irradiance\"; irradianceInfo-\u003esemantic = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE; AddUsedAsset( ASSET_TYPE_GFX_IMAGE, irradianceInfo ); auto reflectionProbeInfo = std::make_shared\u003cGfxImageCreateInfo\u003e( *imageInfo ); reflectionProbeInfo-\u003ename = imageInfo-\u003ename + \"_reflectionProbe\"; reflectionProbeInfo-\u003esemantic = GfxImageSemantic::ENVIRONMENT_MAP_REFLECTION_PROBE; AddUsedAsset( ASSET_TYPE_GFX_IMAGE, reflectionProbeInfo ); } } You can see for images that are environment maps, we also generate two additional images: the irradiance map, and the reflection probe. These are later used for IBL lighting by the renderer. This can be used by any asset type. Pipeline assets add the individual shaders that they reference, for example.\nNon-Inferable Assets While parsing the scene this way gets most of the assets you need, what about assets that your Lua scripts might try to load? The only way to handle these is to explicitly make a list of assets that might be used by the script. For Progression, scene files are stored as [sceneName].json. But the Converter also checks to see if there exists a corresponding [sceneName].csv file in the same directory when processing a scene. If it does, then it loads this file in addition to the .json one. These files are simply lists of assets, in the form [AssetType],[AssetName] on each line.\nOne other area of non-inferable assets is scene-agnostic assets that are not tied to any game objects. One example of this would be compute shaders. These are also handled by adding them to .csv files like assets in scripts, but since these .csvs are agnostic to real scenes, they are stored in a special directory: assets/scenes/required/. When the Converter runs it processes every file in this directory, to always make sure the required assets are up to date and available. The Engine then usually manually loads these fastfiles at startup, like how the renderer loads the gfx_required fastfile to get all of the shaders it needs.\nAsset Conversion Now that we have the list of assets the scene uses, and all of their CreateInfo’s, it’s time to actually convert them. If you want to see the full code, look at ConvertAssets() in converter_main.cpp, all of base_asset_converter.hpp, and at each asset type’s converter. Just like the BaseAssetCreateInfo and BaseAssetParser pattern, there is also a BaseAssetConverter class:\nusing ConstBaseCreateInfoPtr = const std::shared_ptr\u003cconst BaseAssetCreateInfo\u003e; class BaseAssetConverter { public: const AssetType assetType; BaseAssetConverter( AssetType inAssetType ) : assetType( inAssetType ) {} virtual ~BaseAssetConverter() = default; virtual string GetCacheName( ConstBaseCreateInfoPtr\u0026 baseInfo ) { return \"\"; } virtual AssetStatus IsAssetOutOfDate( ConstBaseCreateInfoPtr\u0026 baseInfo ) { return AssetStatus::UP_TO_DATE; } virtual bool Convert( ConstBaseCreateInfoPtr\u0026 baseInfo ) { return true; } virtual void AddReferencedAssets( ConstBaseCreateInfoPtr\u0026 baseInfo ) {} }; And just like the BaseAssetParser, there is also one extra intermediate base class, to handle the type casting to specic [AssetType]CreateInfo and any type-agnostic conversion code.\ntemplate \u003ctypename DerivedAsset, typename DerivedInfo\u003e class BaseAssetConverterTemplate : public BaseAssetConverter { ... What Exactly Is A Converted Asset We haven’t actually covered what it means for an asset to be converted yet. In Progression, a converted asset is one that has been loaded, serialized to binary, and saved to a file. Specifically, these files all get saved under the asset cache directory, which is located at [projectDir]/assets/cache/. The filenames all take the pattern [assetName]_[createInfoHash]_[versionNumber].ffi, where .ffi stands for “fastfile intermediate”. For example, my assets/cache/models/ directory currently looks like this:\ncube_5919176923328749623_v6.ffi dragon_17433001533983433154_v6.ffi sponza_vulkansamples_15064524848871577573_v6.ffi I refer to the [assetName]_[createInfoHash] component as the ‘cache name’, and this is what the BaseAssetConverter::GetCacheName function returns. You don’t have to use this naming convention exactly, but I am relying on the fact that any changes to the asset’s CreateInfo data will change the cache name. A couple of naming alternatives might be:\nJust include the asset’s name right into the hash. This would give shorter and more consistent filenames, but I find having the asset name prefix makes for easier debugging when anything goes wrong in the Converter. Don’t hash everything, but rather just convert (some or all of) the CreateInfo data directly to a string. For example, if you had an asset that just had a dozen bools, you could just append a 1 or 0 to the cache name for each of the bools: assetName_100011110001_v0.ffi. This is nice because you can fully identify the entire CreateInfo just by looking at the cache name, which makes for more powerful debugging. However, I find most real asset CreateInfos have either a lot of parameters or long string parameters like filenames. As a result, using this style would make the cache name super long and unfeasible. Is The Asset Is Out-Of-Date We only want to actually convert an asset if it’s out-of-date. This is the job of the BaseAssetConverter::IsAssetOutOfDate function. There are two components to this:\nHas the asset been converted before? This one is assetType-agnostic and easy: just get the cache name for the asset and check to see if that cache file (.ffi) exists! This is why I said I am “relying on the fact that any changes to the asset’s CreateInfo data will change what the cache name.” It gives us a quick way to see if we’ve ever converted a given combination of settings for an asset before, because if it hasn’t, then no matching file will be found. If it has been converted before, did any of the asset’s source data change? This one depends on the asset type. For example, if we are converting a model asset whose source file is ‘dragon.obj’, then we need to check the timestamp on that .obj file. If the timestamp is newer than our cache file’s timestamp, then we need to reconvert. For images, you would have to check the source .png file(s) (possibly multiple, for cubemaps) instead. Asset Versioning Assets can change over time. How many parameters they have, their values, how they’re serialized, etc. When this happens, it naturally changes what the converted assets binary would be as well. This creates a potential problem: if we update how a model asset is converted, then we need to mark every single model as out-of-date regardless of what the timestamps are. The way this is done is through asset version numbers. Each asset type has a version number, and when you change how an asset is converted, you bump the version number for that asset type. Since these version numbers are included in the cache filename, bumping the version number always causes those assets to be considered out-of-date.\nFinally Converting The Asset Just like all the other classes before this, I use a BaseAsset virtual class, that all the real asset types inherit from:\nclass BaseAsset { public: BaseAsset() = default; virtual ~BaseAsset(); virtual bool Load( const BaseAssetCreateInfo* baseInfo ) { return false; } virtual bool FastfileLoad( Serializer* serializer ) = 0; virtual bool FastfileSave( Serializer* serializer ) const = 0; virtual void Free() {} ... }; A brief explanation of these functions:\nLoad: takes in the CreateInfo and is expected to load the asset from source. Used by the Converter, but compiled out of the Engine, since the Engine should always be loading converted assets, not source assets. FastfileLoad: loads a binary converted asset. Used by the Engine, not the Converter. FastfileSave: serializes a converted asset. Used by the Converter, not the Engine. Free: Engine only, mainly used for freeing up gpu resources the asset might have. So, in the Converter all we really to do with out-of-date assets is call Load with the appropriate CreateInfo, and then FastfileSave:\nvirtual bool ConvertInternal( ConstDerivedInfoPtr\u0026 derivedCreateInfo ) { DerivedAsset asset; const std::string cacheName = GetCacheName( derivedCreateInfo ); asset.cacheName = cacheName; if ( !asset.Load( derivedCreateInfo.get() ) ) { LOG_ERR( \"Failed to convert asset %s %s\", g_assetNames[assetType], derivedCreateInfo-\u003ename.c_str() ); return false; } if ( !AssetCache::CacheAsset( assetType, cacheName, \u0026asset ) ) { LOG_ERR( \"Failed to cache asset %s %s (%s)\", g_assetNames[assetType], derivedCreateInfo-\u003ename.c_str(), asset.cacheName.c_str() ); return false; } return true; } The AssetCache::CacheAsset simply opens the appropriate .ffi file, and then calls FastfileSave to serialize the asset’s data into the file.\nCommon Pitfall Sometimes, when you’re adding a new asset, you mess up and have some bugs in either Load or FastfileSave. If the bug causes the Converter to crash while saving the .ffi file, this causes an issue. When you fix the bugs and go to run the Converter again, it will see that the .ffi exists, with a brand new timestamp, and think the asset is up to date, even though it was only a partially written file before the crash! The only way to fix the issue at that point, would be to either force convert the asset that failed, or delete the invalid .ffi file.\nThe way I try to mitigate this happening is first by not opening the .ffi until Load has fully finished. Second, I wrap the call to FastfileSave in a try/catch block, and if there is an exception I delete the file in the catch block. This seems to work reasonably well, though I think a better way might just be to write to a temporary .ffi file, and then if everything succeeds, rename that file to the intended cache name. That way, if your computer blue screens or you lose power while an asset is being serialized, you could just run the Converter again like normal.\nParallelization With the system described so far, scenes need to be processed one at a time, loaded single-threaded. For my engine, that’s really not an issue, since it’s very quick. The actual asset conversion is the important piece to parallelize. Fortunately, we’ve set things up so that each asset can be processed independently, all they need is their CreateInfos. So, I just get the list of all the out-of-date assets, and then convert them all in parallel using OMP. This works great, though the one caveat is that by default OMP doesn’t allow nested parallel calls. So if any of your asset Load functions are parallelized the same way, you can consider adding omp_set_nested( 1 ); to the start of the Converter to allow nested parallelization. I found this helpful because my environment maps are pretty slow to process, so the converter would stall waiting for that to finish without nested parallelization.\nCreating The Fastfiles At this point in the Converter, every asset has been converted and is up to date, so it’s time to create the fastfile. I haven’t mentioned what the fastfile actually is yet though: it’s simply all of the converted assets bundled into one file. This is to make load times faster by just having a single file IO call that can be read serially, instead of a ton of file IO by using the .ffi files directly. You can add whatever metadata you want, but currently, my fastfiles are literally just lists of [AssetType][AssetBinary] pairs.\nNow the question is: do we need to rebuild the fastfile? Well, it’s very similar to checking for out-of-date assets, with one extra case:\nDoes the fastfile exist? I store all of mine in the asset/cache/fastfiles/ with the naming convension [sceneName]_[version].ff. If this file is not found, the fastfile must be built. If the fastfile does exist, then we need to compare the fastfile’s timestamp, to every single asset used in the scene. If any of the asset timestamps are newer than the fastfile, it means the fastfile is out-of-date. It’s not enough to just check if ( numberOfOutOfDateAssets \u003e 0 ), because the assets could have been converted from a different scene, but are still newer than the current scene’s fastfile. Finally, we need to check if the list of assets we would put in the fastfile if we build it, is different than the list of assets that are already in the previously built fastfile. To track this, every time a fastfile is built I export a text file of [AssetType],[AssetName] pairs for every asset used in that fastfile, and store it in asset/cache/assetlists/[sceneName].txt. The next time the converter is run, we can compare the current list of assets to the ones in this textfile. If the lists differ at all, the fastfile must be rebuilt. Inter-Asset Dependencies + Asset Ordering Sometimes assets reference other assets, like a material referencing its albedo and normal textures. So, when we actually deserialize these assets in Engine, we either need to make sure the images were already loaded before the materials get loaded, or do two-pass loading to fixup the references. I chose the first option for simplicity. This means, however, that the order of assets in our fastfile matters. I do this by grouping the assets by type, and having an explicit type order:\nenum AssetType : u8 { ASSET_TYPE_GFX_IMAGE = 0, ASSET_TYPE_MATERIAL = 1, ASSET_TYPE_SCRIPT = 2, ASSET_TYPE_MODEL = 3, etc... }; As you can see, all of the images are first. That’s because they don’t reference anything else. Materials need to go after images because they reference images. Scripts don’t reference anything, so they can be ordered anywhere, but models can reference materials, so they have to be after materials.\nVersioning Just like converted assets, we have to consider when we make changes to the converter. If we change the version number on any of the assets, we have to rebuild the fastfile. We also need to have a separate version number just for fastfiles for when the fastfile serialization or metadata is changed, independent of converted assets. In Progression it looks like this:\nconstexpr i32 g_assetVersions[] = { 9, // ASSET_TYPE_GFX_IMAGE, \"New name serialization\" 10, // ASSET_TYPE_MATERIAL, \"New name serialization\" 1, // ASSET_TYPE_SCRIPT, \"New name serialization\" 6, // ASSET_TYPE_MODEL, \"Add meshlet cull data\" etc.... }; constexpr u32 PG_FASTFILE_VERSION = 10 + ARRAY_SUM( g_assetVersions ); // reason The comments are intentionally there so that if two people made different changes and had to bump the same version number, there would be a merge conflict. Without the comment, it would auto-merge to only bump the number by one, even though two changes actually happened.\nOne note here, is that I append the version number to the fastfile’s name. This works, but anytime it gets bumped the old fastfiles just lay around and take up space. I think it’s a better idea to serialize the version number into the fastfile, and then check to see in Engine if the version number matches what it expects. This would keep the cache directory smaller when version bumps happen.\nGetting Assets In Engine In Progression, the AssetManager handles the loading and storing of every asset. See asset_manager.hpp and asset_manager.cpp for the full code. This is where the LoadFastFile function is implemented, and it’s very simple: memory map the fastfile, look at the first asset type, allocate it + call its FastfileLoad, and then move on to the next asset and repeat. There is a hash map per AssetType for storing these:\nunordered_map\u003cstring, BaseAsset*\u003e g_resourceMaps[ASSET_TYPE_COUNT]; You can see that I’m just using plain pointers, but you probably want your loaded assets to be ref-counted. I haven’t added this yet, but mostly because I load one demo scene at a time, and it doesn’t really matter :) If you ever manage multiple scenes though, when you unload a scene, you will want to free the assets that are not shared by any other scene.\nAs for accessing these loaded assets, I had decided early on that I wanted to have the interface AssetManager::Get( assetName ). This just seemed nice and simple to me, which is one of the goals I had. An example would be Material* mat = AssetManager::Get( \"wood_floor\" );. To make this happen, we need a way to convert from actual template AssetType to its ASSET_TYPE enum value, to appropriately index into g_resourceMaps[ASSET_TYPE_COUNT]. The only way I know how to do that in C++, is to use static variables:\nstruct GetAssetTypeIDHelper { static u32 IDCounter; }; template \u003ctypename Derived\u003e struct GetAssetTypeID : public GetAssetTypeIDHelper { static u32 ID() { static u32 id = IDCounter++; return id; } }; We can then do things like GetAssetTypeID::ID() to get an index from a type. The caveat is that we have to initialize these in the same order their type appears in the ASSET_TYPE enum, which I do at the beginning of AssetManager::Init:\nvoid Init() { GetAssetTypeID\u003cGfxImage\u003e::ID(); // ASSET_TYPE_GFX_IMAGE GetAssetTypeID\u003cMaterial\u003e::ID(); // ASSET_TYPE_MATERIAL GetAssetTypeID\u003cScript\u003e::ID(); // ASSET_TYPE_SCRIPT etc... And with that, we’ve covered the entire asset pipeline from start to finish! I hope that gives some more insight into how these pipelines work.\nA Few Final Remarks There are a few final things I’d like to discuss about the whole pipeline, particularly in regards to the high-level goals we initially set out to achieve:\nPerformance: The main goal was to have fast load times. Did we succeed? I’d say yes! Here are the load times for two scenes:\nCrytek Sponza: 41ms, for a 77MB fastfile containing 77 assets Intel Sponza: 428ms, for a 1.212GB fastfile containing 86 assets (has much larger models and 4k textures compared to Crytek’s). I do have an NVME SSD which helps a lot, but I’m still quite pleased with the load times. The load times also include creating and uploading the textures + models to the GPU. There was also a secondary goal of decent Converter performance. Now this one heavily depends on what scene you are converting, but overall, my convert times are OK, but not great. For example, a fully fresh convert of Crytek’s Sponza takes 2.5 seconds on my machine, while the Intel Sponza (plus a big skybox) takes 36 seconds. However, the second convert once nothing has changed is only 21ms. This is largely because I haven’t taken the time to optimize convert times, and for a hobby engine kind of lean towards slow but simple converters compared to a lot of complicated fast paths.\nHot Reloading: Currently, my engine doesn’t support hot reloading of assets. It did, a long long time ago, but it was implemented awkwardly, so I ripped it out. It’s something I’d definitely like to add again one day, but honestly for Progression? It doesn’t add a lot of value, when booting the Engine and loading a Scene takes less than one second. The iteration time is already very low :)\nBreakage Frequency and Debugging: Surprisingly, this breaks less often than you’d think! It is fairly easy to add bugs, especially with custom serialization and deserialization. However, I find that with the pipeline’s simple structure and naming conventions, it rarely takes me a long time to figure out what mistake I made. In my mind, as long as bugs don’t happen too often and are quick to fix, then you’ve succeeded at something.\nDisk Size + Compression: This is a huge one that I haven’t talked about yet. Any real engine will compress their assets/fastfiles/packages, typically in a format that gives very fast decompression rates (LZ4, Oodle, etc). Progression currently doesn’t compress anything however. I would like to add it of course, but part of the reason I haven’t bothered yet, is because of some small experiments with LZ4. Since I haven’t played around with RDO on my textures, using LZ4 on them usually only saves between 0-2%. Even on the rest of the assets, the savings are not amazing. For example, here are the results of using LZ4 on the entire fastfile for the two Sponza scenes I mentioned above:\nCrytek Sponza: 14.1% savings with default compression, and 20.9% savings with LZ4_HC Intel Sponza: 11% savings with default compression, 18% with LZ4_HC Not really substantial enough to make me add it yet, especially since LZ4_HC isn’t super fast. I’d rather just keep the fastest iteration times for now. I do love compression, however, so I definitely want to revisit this at some point, and try to use RDO and make assets compression-friendly :)\nAnd with that, I think I’ve covered everything I wanted to. I’ll definitely post a part 2, going over how specific assets are converted, but I hope the general pipeline structure makes sense, and why I chose to design it like that. Thanks to everyone who stuck around to read the whole thing, this definitely got longer than I thought it would. Leave a comment if you’d like; I’d love to hear feedback, and love to hear other decisions people made when structuring their asset pipelines!\n",
+  "wordCount" : "4971",
+  "inLanguage": "en",
+  "datePublished": "2024-07-07T00:00:00Z",
+  "dateModified": "2024-07-07T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://liamtyler.github.io/posts/asset_pipeline_part_1/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Liam's Graphics Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://liamtyler.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://liamtyler.github.io/" accesskey="h" title="Liam&#39;s Graphics Blog (Alt + H)">Liam&#39;s Graphics Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://liamtyler.github.io/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://liamtyler.github.io/about/" title="About">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://liamtyler.github.io/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      Asset Pipelines Part 1
+    </h1>
+    <div class="post-meta"><span title='2024-07-07 00:00:00 +0000 UTC'>July 7, 2024</span>
+
+</div>
+  </header> 
+  <div class="post-content"><p>Asset pipelines are one of the pieces of game development I don&rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &ldquo;convert your assets into binary packages, compress them, and load them at runtime,&rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&rsquo;d argue it has the single biggest impact on development. How fast can the game load? How long do you have to wait to see the results of a change you make? How quickly can people add new assets? How quickly can developers add new asset types? All of these have a huge impact on both artists and programmers alike.</p>
+<p>Because of this, in this post, I want to walk through how I handle assets in my little hobby engine called <a href="https://github.com/LiamTyler/Progression">Progression</a>. It doesn&rsquo;t introduce any novel ideas, but I hope by sharing it, people can learn a bit and get more ideas of what to do (and what not to do) for their own asset pipelines. In this part 1 post, I will cover the overall asset pipeline, focusing on how the Converter is structured. In part 2 I will go over more specifics of how individual assets are converted (like how textures are composited and compressed).</p>
+<p>
+
+  <h1>Contents</h1>
+  <div style="display: inline-block; padding: 0 10px 0 5px">
+
+
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#high-level-goals">High-Level Goals</a></li>
+    <li><a href="#before-asset-conversion">Before Asset Conversion</a>
+      <ul>
+        <li><a href="#asset-files">Asset Files</a></li>
+        <li><a href="#parsing-paf-files">Parsing .paf Files</a></li>
+        <li><a href="#scanning-the-scene-for-used-assets">Scanning The Scene For Used Assets</a>
+          <ul>
+            <li><a href="#referenced-assets">Referenced Assets</a></li>
+            <li><a href="#non-inferable-assets">Non-Inferable Assets</a></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><a href="#asset-conversion">Asset Conversion</a>
+      <ul>
+        <li><a href="#what-exactly-is-a-converted-asset">What Exactly Is A Converted Asset</a></li>
+        <li><a href="#is-the-asset-is-out-of-date">Is The Asset Is Out-Of-Date</a>
+          <ul>
+            <li><a href="#asset-versioning">Asset Versioning</a></li>
+          </ul>
+        </li>
+        <li><a href="#finally-converting-the-asset">Finally Converting The Asset</a>
+          <ul>
+            <li><a href="#common-pitfall">Common Pitfall</a></li>
+            <li><a href="#parallelization">Parallelization</a></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><a href="#creating-the-fastfiles">Creating The Fastfiles</a>
+      <ul>
+        <li><a href="#inter-asset-dependencies--asset-ordering">Inter-Asset Dependencies + Asset Ordering</a></li>
+        <li><a href="#versioning">Versioning</a></li>
+      </ul>
+    </li>
+    <li><a href="#getting-assets-in-engine">Getting Assets In Engine</a></li>
+    <li><a href="#a-few-final-remarks">A Few Final Remarks</a></li>
+  </ul>
+</nav>
+
+
+  </div>
+
+</p>
+<h1 id="high-level-goals">High-Level Goals<a hidden class="anchor" aria-hidden="true" href="#high-level-goals">#</a></h1>
+<p>It&rsquo;s important to realize what you want most out of your asset pipeline. The entire reason I made one in the first place, is because slow iteration times make my brain short-circuit. There&rsquo;s nothing more frustrating than making a tiny change and then needing to wait several seconds (or often minutes at real studios) to see if it worked. That&rsquo;s why for me, the number one goal was to have fast load times. As for the other aspects:</p>
+<ol>
+<li><strong>Convert Times</strong>: Medium priority for me, since it directly impacts iteration speed but happens less often (for me) than booting the game. If you&rsquo;re in a studio with many people converting? I&rsquo;d argue it should be extremely high priority, though it often seems to get pushed to the side.</li>
+<li><strong>Runtime Performance and Quality</strong>: High priority. How much you do offline directly impacts how fast the engine can process and render things. I usually make the choice to favor high FPS, but if you find yourself annoyed at long convert times, then it can definitely be beneficial to sacrifice a little FPS for faster iteration times, especially in development builds.</li>
+<li><strong>Disk Size</strong>: Low priority, since I&rsquo;m just making small demos and not shipping a game. I&rsquo;m actually really passionate about this for real studios (the Call of Duty download sizes make me want to cry) and I think compression is super cool. But for a hobby engine? It hardly matters until you&rsquo;re about to ship.</li>
+<li><strong>Ease of Adding New Assets and Asset Types</strong>: Low priority, since I just do small scenes, and rarely need to add new asset types after the initial set (textures, models, pipelines, scripts, etc).</li>
+<li><strong>Useability</strong>: Medium-high priority. I wanted a simple and consistent interface to access assets, both in the engine C++ code, and in game scripts.</li>
+</ol>
+<h1 id="before-asset-conversion">Before Asset Conversion<a hidden class="anchor" aria-hidden="true" href="#before-asset-conversion">#</a></h1>
+<p>So how does this all work in my engine? Well, there are 3 main executables:</p>
+<ul>
+<li><strong>Engine.exe</strong>: the game</li>
+<li><strong>Converter.exe</strong>: runs before the game. Responsible for processing all of the assets that a scene will need when loaded in the Engine. It loads them, converts them all to binary, and groups them into binary packages. I call those packages &ldquo;Fastfiles&rdquo;, because that was what they were called in CoD, and I got used to it.</li>
+<li><strong>ModelExporter.exe</strong>: responsible for taking source model files (.obj, .fbx, .gltf, etc) and converting them into a common model file format (.pmodel) that the Converter can then use. This could have all been part of the Converter, but parsing model files can be really involved and sometimes the output can need some cleanup before being used in your real pipeline. So, it was helpful to have as a separate executable that runs once on every model you download, and then never again.</li>
+</ul>
+<p>We&rsquo;ll walk through from the beginning of the pipeline when the Converter starts up, to loading a fastfile in the Engine. The ModelExporter won&rsquo;t be discussed further here.</p>
+<h2 id="asset-files">Asset Files<a hidden class="anchor" aria-hidden="true" href="#asset-files">#</a></h2>
+<p>In order to use an asset in Progression, it first has to be described in a Progression Asset File (.paf). These are just JSON text files which contain all of the info needed to load an asset. I don&rsquo;t really recommend JSON in hindsight, but it is convenient to use something like json or markup languages that already have fast parsers written for them. Here is an example of a couple assets:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>[{ <span style="color:#f92672">&#34;Image&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;kloppenheim&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;equirectangularFilename&#34;</span>: <span style="color:#e6db74">&#34;images/skies/kloppenheim_06_2k.exr&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;semantic&#34;</span>: <span style="color:#e6db74">&#34;ENVIRONMENT_MAP&#34;</span>
+</span></span><span style="display:flex;"><span>}},
+</span></span><span style="display:flex;"><span>{ <span style="color:#f92672">&#34;Pipeline&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;frustum_cull_meshes&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;computeShader&#34;</span>: <span style="color:#e6db74">&#34;frustum_cull_meshes.comp&#34;</span>
+</span></span><span style="display:flex;"><span>}}]
+</span></span></code></pre></div><p>You can see that each asset first defines the AssetType (Image and Pipeline above). Every asset also needs to have a name. In my engine, the name is the GUID. Different asset types can share the same name, but not two assets within the same type. I know some people use hashes for GUIDs, but I find using plain text names extremely convenient for readability, searchability, and debugging. I highly recommend them. Beyond the name, the parameters are specific to the asset and are used to define how to load the asset. These JSON definitions are directly parsed into <code>[AssetType]CreateInfo</code> structures which look like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">BaseAssetCreateInfo</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    string name;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ModelCreateInfo</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> BaseAssetCreateInfo
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    string filename; <span style="color:#75715e">// relative path to pmodel file
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> recalculateNormals <span style="color:#f92672">=</span> false;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>So the first thing the Converter does, is parse every single .paf file into a bunch of <code>[AssetType]CreateInfo</code> structs. This defines the list of assets that a scene <em>can</em> reference, and all the info needed to load them, if so.</p>
+<h2 id="parsing-paf-files">Parsing .paf Files<a hidden class="anchor" aria-hidden="true" href="#parsing-paf-files">#</a></h2>
+<p>How exactly you go from JSON -&gt; <code>CreateInfo</code> isn&rsquo;t super important, so I&rsquo;ll just cover the main points here. The full code for this can be seen here in <a href="https://github.com/LiamTyler/Progression/blob/main/code/asset/parsing/asset_parsers.hpp">asset_parer.hpp</a>, <a href="https://github.com/LiamTyler/Progression/blob/main/code/asset/parsing/asset_parsers.cpp">asset_parser.cpp</a>, and <a href="https://github.com/LiamTyler/Progression/blob/main/code/asset/asset_file_database.cpp">asset_file_database.cpp</a>.</p>
+<p>Just like how each asset type defined an <code>[AssetType]CreateInfo</code> struct that derived from <code>BaseAssetCreateInfo</code>, each type also defines an <code>[AssetType]Parser</code> that derives from <code>BaseAssetParser</code>. This is just so we can hold the parsers in a single array <code>BaseAssetParser* g_assetParsers[ASSET_TYPE_COUNT]</code>, and then call a virtual <code>Parse</code> function that parses the JSON and returns a filled out <code>[AssetType]CreateInfo</code>. The caveat is that there is one extra level of inheritance with a templated class, to actually allocate the specific CreateInfo type.</p>
+<p>One interesting aspect to consider here is inheritance (or parenting) in the JSON itself. Say you spent a lot of time filling out a complicated asset with many parameters. Later on it turns out you need to make 3 more just like the first one, with only 1-2 parameters changed. You could copy and paste the original asset definition 3 times, or you could declare that the 3 new assets inherit from that original asset. That way every parameter is copied except the name, and you only have to specify new parameters instead of all of them. In Progression this is done by specifying a &ldquo;parent&rdquo; parameter in the JSON. Then in the code, it is used like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>std<span style="color:#f92672">::</span>shared_ptr<span style="color:#f92672">&lt;</span>BaseAssetCreateInfo<span style="color:#f92672">&gt;</span> parentCreateInfo <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> ( value.HasMember( <span style="color:#e6db74">&#34;parent&#34;</span> ) )
+</span></span><span style="display:flex;"><span>    parentCreateInfo <span style="color:#f92672">=</span> FindAssetInfo( assetType, value[<span style="color:#e6db74">&#34;parent&#34;</span>].GetString() );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>std<span style="color:#f92672">::</span>shared_ptr<span style="color:#f92672">&lt;</span>BaseAssetCreateInfo<span style="color:#f92672">&gt;</span> info;
+</span></span><span style="display:flex;"><span>info <span style="color:#f92672">=</span> g_assetParsers[assetType]<span style="color:#f92672">-&gt;</span>Parse( value, parentCreateInfo );
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">virtual</span> BaseInfoPtr Parse( <span style="color:#66d9ef">const</span> rapidjson<span style="color:#f92672">::</span>Value<span style="color:#f92672">&amp;</span> value, ConstBaseInfoPtr parentCreateInfo ) <span style="color:#66d9ef">override</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// create the specific [AssetType]CreateInfo, not a BaseAssetCreateInfo
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">auto</span> info <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_shared<span style="color:#f92672">&lt;</span>DerivedInfo<span style="color:#f92672">&gt;</span>();
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// if this asset has a parent, copy all of the parameters except the name
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> ( parentCreateInfo )
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">*</span>info <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>std<span style="color:#f92672">::</span>static_pointer_cast<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">const</span> DerivedInfo<span style="color:#f92672">&gt;</span>( parentCreateInfo );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string assetName <span style="color:#f92672">=</span> value[<span style="color:#e6db74">&#34;name&#34;</span>].GetString();
+</span></span><span style="display:flex;"><span>    info<span style="color:#f92672">-&gt;</span>name                  <span style="color:#f92672">=</span> assetName;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// finally, fill out the createInfo data by parsing the JSON
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ParseInternal</span>( value, info ) <span style="color:#f92672">?</span> info : <span style="color:#66d9ef">nullptr</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The caveat here, is that I only do a single-pass over the asset files. So, if an asset wants to use a parent, that parent <em>must</em> be defined earlier in the same asset file. I personally don&rsquo;t mind this restriction, and I even think it helps keep things more contained. I definitely remember artists complaining about this at SHG though, which also used single pass asset parsing.</p>
+<h2 id="scanning-the-scene-for-used-assets">Scanning The Scene For Used Assets<a hidden class="anchor" aria-hidden="true" href="#scanning-the-scene-for-used-assets">#</a></h2>
+<p>Now that we have the possible assets parsed and ready, the next step is to actually figure out which of those are needed for the scene. In my pipeline, the Converter is run per-scene like so: <code>Converter.exe [sceneName]</code>. My scene files are also JSON:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>[{ <span style="color:#f92672">&#34;Camera&#34;</span>: { <span style="color:#f92672">&#34;position&#34;</span>: [ <span style="color:#ae81ff">-15</span>, <span style="color:#ae81ff">-25</span>, <span style="color:#ae81ff">0</span> ], <span style="color:#f92672">&#34;rotation&#34;</span>: [ <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span> ], <span style="color:#f92672">&#34;nearPlane&#34;</span>: <span style="color:#ae81ff">0.02</span> }},
+</span></span><span style="display:flex;"><span>{ <span style="color:#f92672">&#34;Skybox&#34;</span>: <span style="color:#e6db74">&#34;kloppenheim&#34;</span> },
+</span></span><span style="display:flex;"><span>{ <span style="color:#f92672">&#34;Script&#34;</span>: <span style="color:#e6db74">&#34;cameraController&#34;</span> },
+</span></span><span style="display:flex;"><span>{ <span style="color:#f92672">&#34;DirectionalLight&#34;</span>: { <span style="color:#f92672">&#34;color&#34;</span>: [ <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span> ], <span style="color:#f92672">&#34;direction&#34;</span>: [ <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">-1</span> ] } },
+</span></span><span style="display:flex;"><span>{ <span style="color:#f92672">&#34;Entity&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;NameComponent&#34;</span>: <span style="color:#e6db74">&#34;dragon&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;Transform&#34;</span>: { <span style="color:#f92672">&#34;position&#34;</span>: [ <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span> ], <span style="color:#f92672">&#34;rotation&#34;</span>: [ <span style="color:#ae81ff">90</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">90</span> ], <span style="color:#f92672">&#34;scale&#34;</span>: [ <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span> ] },
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;ModelRenderer&#34;</span>: { <span style="color:#f92672">&#34;model&#34;</span>: <span style="color:#e6db74">&#34;dragon&#34;</span>, <span style="color:#f92672">&#34;material&#34;</span>: <span style="color:#e6db74">&#34;blue&#34;</span> }
+</span></span><span style="display:flex;"><span>}}]
+</span></span></code></pre></div><p>So in the example scene above, the converter would need to convert: the image &lsquo;kloppenheim, the script &lsquo;cameraController&rsquo;, the model &lsquo;dragon&rsquo;, and the material &lsquo;blue&rsquo;.</p>
+<h3 id="referenced-assets">Referenced Assets<a hidden class="anchor" aria-hidden="true" href="#referenced-assets">#</a></h3>
+<p>Assets can also implicitly reference other ones, so once the scene is parsed we call <code>AddReferencedAssets</code> on each of these assets. For example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> GfxImageConverter<span style="color:#f92672">::</span>AddReferencedAssetsInternal( ConstDerivedInfoPtr<span style="color:#f92672">&amp;</span> imageInfo )
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( imageInfo<span style="color:#f92672">-&gt;</span>semantic <span style="color:#f92672">==</span> GfxImageSemantic<span style="color:#f92672">::</span>ENVIRONMENT_MAP )
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">auto</span> irradianceInfo      <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_shared<span style="color:#f92672">&lt;</span>GfxImageCreateInfo<span style="color:#f92672">&gt;</span>( <span style="color:#f92672">*</span>imageInfo );
+</span></span><span style="display:flex;"><span>        irradianceInfo<span style="color:#f92672">-&gt;</span>name     <span style="color:#f92672">=</span> imageInfo<span style="color:#f92672">-&gt;</span>name <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;_irradiance&#34;</span>;
+</span></span><span style="display:flex;"><span>        irradianceInfo<span style="color:#f92672">-&gt;</span>semantic <span style="color:#f92672">=</span> GfxImageSemantic<span style="color:#f92672">::</span>ENVIRONMENT_MAP_IRRADIANCE;
+</span></span><span style="display:flex;"><span>        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, irradianceInfo );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">auto</span> reflectionProbeInfo      <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_shared<span style="color:#f92672">&lt;</span>GfxImageCreateInfo<span style="color:#f92672">&gt;</span>( <span style="color:#f92672">*</span>imageInfo );
+</span></span><span style="display:flex;"><span>        reflectionProbeInfo<span style="color:#f92672">-&gt;</span>name     <span style="color:#f92672">=</span> imageInfo<span style="color:#f92672">-&gt;</span>name <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;_reflectionProbe&#34;</span>;
+</span></span><span style="display:flex;"><span>        reflectionProbeInfo<span style="color:#f92672">-&gt;</span>semantic <span style="color:#f92672">=</span> GfxImageSemantic<span style="color:#f92672">::</span>ENVIRONMENT_MAP_REFLECTION_PROBE;
+</span></span><span style="display:flex;"><span>        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, reflectionProbeInfo );
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>You can see for images that are environment maps, we also generate two additional images: the irradiance map, and the reflection probe. These are later used for IBL lighting by the renderer. This can be used by any asset type. Pipeline assets add the individual shaders that they reference, for example.</p>
+<h3 id="non-inferable-assets">Non-Inferable Assets<a hidden class="anchor" aria-hidden="true" href="#non-inferable-assets">#</a></h3>
+<p>While parsing the scene this way gets most of the assets you need, what about assets that your Lua scripts might try to load? The only way to handle these is to explicitly make a list of assets that might be used by the script. For Progression, scene files are stored as [sceneName].json. But the Converter also checks to see if there exists a corresponding [sceneName].csv file in the same directory when processing a scene. If it does, then it loads this file in addition to the .json one. These files are simply lists of assets, in the form [AssetType],[AssetName] on each line.</p>
+<p>One other area of non-inferable assets is scene-agnostic assets that are not tied to any game objects. One example of this would be compute shaders. These are also handled by adding them to .csv files like assets in scripts, but since these .csvs are agnostic to real scenes, they are stored in a special directory: <code>assets/scenes/required/</code>. When the Converter runs it processes every file in this directory, to always make sure the required assets are up to date and available. The Engine then usually manually loads these fastfiles at startup, like how the renderer loads the gfx_required fastfile to get all of the shaders it needs.</p>
+<h1 id="asset-conversion">Asset Conversion<a hidden class="anchor" aria-hidden="true" href="#asset-conversion">#</a></h1>
+<p>Now that we have the list of assets the scene uses, and all of their CreateInfo&rsquo;s, it&rsquo;s time to actually convert them. If you want to see the full code, look at <a href="https://github.com/LiamTyler/Progression/blob/main/code/projects/converter/converter_main.cpp">ConvertAssets() in converter_main.cpp</a>, all of <a href="https://github.com/LiamTyler/Progression/blob/main/code/projects/converter/converters/base_asset_converter.hpp">base_asset_converter.hpp</a>,  and at each asset type&rsquo;s <a href="https://github.com/LiamTyler/Progression/tree/main/code/projects/converter/converters">converter</a>. Just like the <code>BaseAssetCreateInfo</code> and <code>BaseAssetParser</code> pattern, there is also a <code>BaseAssetConverter</code> class:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> ConstBaseCreateInfoPtr <span style="color:#f92672">=</span> <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>shared_ptr<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">const</span> BaseAssetCreateInfo<span style="color:#f92672">&gt;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BaseAssetConverter</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> AssetType assetType;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    BaseAssetConverter( AssetType inAssetType ) <span style="color:#f92672">:</span> assetType( inAssetType ) {}
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> <span style="color:#f92672">~</span>BaseAssetConverter() <span style="color:#f92672">=</span> <span style="color:#66d9ef">default</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> string <span style="color:#a6e22e">GetCacheName</span>( ConstBaseCreateInfoPtr<span style="color:#f92672">&amp;</span> baseInfo ) { <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;&#34;</span>; }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> AssetStatus <span style="color:#a6e22e">IsAssetOutOfDate</span>( ConstBaseCreateInfoPtr<span style="color:#f92672">&amp;</span> baseInfo ) { <span style="color:#66d9ef">return</span> AssetStatus<span style="color:#f92672">::</span>UP_TO_DATE; }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">Convert</span>( ConstBaseCreateInfoPtr<span style="color:#f92672">&amp;</span> baseInfo ) { <span style="color:#66d9ef">return</span> true; }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">AddReferencedAssets</span>( ConstBaseCreateInfoPtr<span style="color:#f92672">&amp;</span> baseInfo ) {}
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>And just like the <code>BaseAssetParser</code>, there is also one extra intermediate base class, to handle the type casting to specic <code>[AssetType]CreateInfo</code> and any type-agnostic conversion code.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> DerivedAsset, <span style="color:#66d9ef">typename</span> DerivedInfo<span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BaseAssetConverterTemplate</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> BaseAssetConverter
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    ...
+</span></span></code></pre></div><h2 id="what-exactly-is-a-converted-asset">What Exactly Is A Converted Asset<a hidden class="anchor" aria-hidden="true" href="#what-exactly-is-a-converted-asset">#</a></h2>
+<p>We haven&rsquo;t actually covered what it means for an asset to be converted yet. In Progression, a converted asset is one that has been loaded, serialized to binary, and saved to a file. Specifically, these files all get saved under the asset cache directory, which is located at <code>[projectDir]/assets/cache/</code>. The filenames all take the pattern <code>[assetName]_[createInfoHash]_[versionNumber].ffi</code>, where .ffi stands for &ldquo;fastfile intermediate&rdquo;. For example, my <code>assets/cache/models/</code> directory currently looks like this:</p>
+<pre tabindex="0"><code>cube_5919176923328749623_v6.ffi
+dragon_17433001533983433154_v6.ffi
+sponza_vulkansamples_15064524848871577573_v6.ffi
+</code></pre><p>I refer to the <code>[assetName]_[createInfoHash]</code> component as the &lsquo;cache name&rsquo;, and this is what the <code>BaseAssetConverter::GetCacheName</code> function returns. You don&rsquo;t have to use this naming convention exactly, but I am relying on the fact that any changes to the asset&rsquo;s CreateInfo data will change the cache name. A couple of naming alternatives might be:</p>
+<ol>
+<li>Just include the asset&rsquo;s name right into the hash. This would give shorter and more consistent filenames, but I find having the asset name prefix makes for easier debugging when anything goes wrong in the Converter.</li>
+<li>Don&rsquo;t hash everything, but rather just convert (some or all of) the CreateInfo data directly to a string. For example, if you had an asset that just had a dozen bools, you could just append a 1 or 0 to the cache name for each of the bools: <code>assetName_100011110001_v0.ffi</code>. This is nice because you can fully identify the entire CreateInfo just by looking at the cache name, which makes for more powerful debugging. However, I find most real asset CreateInfos have either a lot of parameters or long string parameters like filenames. As a result, using this style would make the cache name super long and unfeasible.</li>
+</ol>
+<h2 id="is-the-asset-is-out-of-date">Is The Asset Is Out-Of-Date<a hidden class="anchor" aria-hidden="true" href="#is-the-asset-is-out-of-date">#</a></h2>
+<p>We only want to actually convert an asset if it&rsquo;s out-of-date. This is the job of the <code>BaseAssetConverter::IsAssetOutOfDate</code> function. There are two components to this:</p>
+<ol>
+<li>Has the asset been converted before? 
+ <br> 
+ This one is assetType-agnostic and easy: just get the cache name for the asset and check to see if that cache file (.ffi) exists! This is why I said I am &ldquo;relying on the fact that any changes to the asset&rsquo;s CreateInfo data will change what the cache name.&rdquo; It gives us a quick way to see if we&rsquo;ve ever converted a given combination of settings for an asset before, because if it hasn&rsquo;t, then no matching file will be found.</li>
+<li>If it has been converted before, did any of the asset&rsquo;s source data change? 
+ <br> 
+
+This one depends on the asset type. For example, if we are converting a model asset whose source file is &lsquo;dragon.obj&rsquo;, then we need to check the timestamp on that .obj file. If the timestamp is newer than our cache file&rsquo;s timestamp, then we need to reconvert. For images, you would have to check the source .png file(s) (possibly multiple, for cubemaps) instead.</li>
+</ol>
+<h3 id="asset-versioning">Asset Versioning<a hidden class="anchor" aria-hidden="true" href="#asset-versioning">#</a></h3>
+<p>Assets can change over time. How many parameters they have, their values, how they&rsquo;re serialized, etc. When this happens, it naturally changes what the converted assets binary would be as well. This creates a potential problem: if we update how a model asset is converted, then we need to mark every single model as out-of-date regardless of what the timestamps are. The way this is done is through asset version numbers. Each asset type has a version number, and when you change how an asset is converted, you bump the version number for that asset type. Since these version numbers are included in the cache filename, bumping the version number always causes those assets to be considered out-of-date.</p>
+<h2 id="finally-converting-the-asset">Finally Converting The Asset<a hidden class="anchor" aria-hidden="true" href="#finally-converting-the-asset">#</a></h2>
+<p>Just like all the other classes before this, I use a BaseAsset virtual class, that all the real asset types inherit from:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BaseAsset</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>    BaseAsset() <span style="color:#f92672">=</span> <span style="color:#66d9ef">default</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> <span style="color:#f92672">~</span>BaseAsset();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">Load</span>( <span style="color:#66d9ef">const</span> BaseAssetCreateInfo<span style="color:#f92672">*</span> baseInfo ) { <span style="color:#66d9ef">return</span> false; }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">FastfileLoad</span>( Serializer<span style="color:#f92672">*</span> serializer )       <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">FastfileSave</span>( Serializer<span style="color:#f92672">*</span> serializer ) <span style="color:#66d9ef">const</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">Free</span>() {}
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>A brief explanation of these functions:</p>
+<ul>
+<li><code>Load</code>: takes in the CreateInfo and is expected to load the asset from source. Used by the Converter, but compiled out of the Engine, since the Engine should always be loading converted assets, not source assets.</li>
+<li><code>FastfileLoad</code>: loads a binary converted asset. Used by the Engine, not the Converter.</li>
+<li><code>FastfileSave</code>: serializes a converted asset. Used by the Converter, not the Engine.</li>
+<li><code>Free</code>: Engine only, mainly used for freeing up gpu resources the asset might have.</li>
+</ul>
+<p>So, in the Converter all we really to do with out-of-date assets is call <code>Load</code> with the appropriate CreateInfo, and then <code>FastfileSave</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">ConvertInternal</span>( ConstDerivedInfoPtr<span style="color:#f92672">&amp;</span> derivedCreateInfo )
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    DerivedAsset asset;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string cacheName <span style="color:#f92672">=</span> GetCacheName( derivedCreateInfo );
+</span></span><span style="display:flex;"><span>    asset.cacheName             <span style="color:#f92672">=</span> cacheName;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!</span>asset.Load( derivedCreateInfo.get() ) )
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        LOG_ERR( <span style="color:#e6db74">&#34;Failed to convert asset %s %s&#34;</span>, g_assetNames[assetType],
+</span></span><span style="display:flex;"><span>            derivedCreateInfo<span style="color:#f92672">-&gt;</span>name.c_str() );
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> false;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!</span>AssetCache<span style="color:#f92672">::</span>CacheAsset( assetType, cacheName, <span style="color:#f92672">&amp;</span>asset ) )
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        LOG_ERR( <span style="color:#e6db74">&#34;Failed to cache asset %s %s (%s)&#34;</span>, g_assetNames[assetType],
+</span></span><span style="display:flex;"><span>            derivedCreateInfo<span style="color:#f92672">-&gt;</span>name.c_str(), asset.cacheName.c_str() );
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> false;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> true;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The <code>AssetCache::CacheAsset</code> simply opens the appropriate .ffi file, and then calls <code>FastfileSave</code> to serialize the asset&rsquo;s data into the file.</p>
+<h3 id="common-pitfall">Common Pitfall<a hidden class="anchor" aria-hidden="true" href="#common-pitfall">#</a></h3>
+<p>Sometimes, when you&rsquo;re adding a new asset, you mess up and have some bugs in either <code>Load</code> or <code>FastfileSave</code>. If the bug causes the Converter to crash while saving the .ffi file, this causes an issue. When you fix the bugs and go to run the Converter again, it will see that the .ffi exists, with a brand new timestamp, and think the asset is up to date, even though it was only a partially written file before the crash! The only way to fix the issue at that point, would be to either force convert the asset that failed, or delete the invalid .ffi file.</p>
+<p>The way I try to mitigate this happening is first by not opening the .ffi until <code>Load</code> has fully finished. Second, I wrap the call to <code>FastfileSave</code> in a try/catch block, and if there is an exception I delete the file in the catch block. This seems to work reasonably well, though I think a better way might just be to write to a temporary .ffi file, and then if everything succeeds, rename that file to the intended cache name. That way, if your computer blue screens or you lose power while an asset is being serialized, you could just run the Converter again like normal.</p>
+<h3 id="parallelization">Parallelization<a hidden class="anchor" aria-hidden="true" href="#parallelization">#</a></h3>
+<p>With the system described so far, scenes need to be processed one at a time, loaded single-threaded. For my engine, that&rsquo;s really not an issue, since it&rsquo;s very quick. The actual asset conversion is the important piece to parallelize. Fortunately, we&rsquo;ve set things up so that each asset can be processed independently, all they need is their CreateInfos. So, I just get the list of all the out-of-date assets, and then convert them all in parallel using OMP. This works great, though the one caveat is that by default OMP doesn&rsquo;t allow nested parallel calls. So if any of your asset <code>Load</code> functions are parallelized the same way, you can consider adding <code>omp_set_nested( 1 );</code> to the start of the Converter to allow nested parallelization. I found this helpful because my environment maps are pretty slow to process, so the converter would stall waiting for that to finish without nested parallelization.</p>
+<h1 id="creating-the-fastfiles">Creating The Fastfiles<a hidden class="anchor" aria-hidden="true" href="#creating-the-fastfiles">#</a></h1>
+<p>At this point in the Converter, every asset has been converted and is up to date, so it&rsquo;s time to create the fastfile. I haven&rsquo;t mentioned what the fastfile actually is yet though: it&rsquo;s simply all of the converted assets bundled into one file. This is to make load times faster by just having a single file IO call that can be read serially, instead of a ton of file IO by using the .ffi files directly. You can add whatever metadata you want, but currently, my fastfiles are literally just lists of <code>[AssetType][AssetBinary]</code> pairs.</p>
+<p>Now the question is: do we need to rebuild the fastfile? Well, it&rsquo;s very similar to checking for out-of-date assets, with one extra case:</p>
+<ol>
+<li>Does the fastfile exist? I store all of mine in the <code>asset/cache/fastfiles/</code> with the naming convension <code>[sceneName]_[version].ff</code>. If this file is not found, the fastfile must be built.</li>
+<li>If the fastfile does exist, then we need to compare the fastfile&rsquo;s timestamp, to every single asset used in the scene. If any of the asset timestamps are newer than the fastfile, it means the fastfile is out-of-date. It&rsquo;s not enough to just check <code>if ( numberOfOutOfDateAssets &gt; 0 )</code>, because the assets could have been converted from a different scene, but are still newer than the current scene&rsquo;s fastfile.</li>
+<li>Finally, we need to check if the list of assets we would put in the fastfile if we build it, is different than the list of assets that are already in the previously built fastfile. To track this, every time a fastfile is built I export a text file of <code>[AssetType],[AssetName]</code> pairs for every asset used in that fastfile, and store it in <code>asset/cache/assetlists/[sceneName].txt</code>. The next time the converter is run, we can compare the current list of assets to the ones in this textfile. If the lists differ at all, the fastfile must be rebuilt.</li>
+</ol>
+<h2 id="inter-asset-dependencies--asset-ordering">Inter-Asset Dependencies + Asset Ordering<a hidden class="anchor" aria-hidden="true" href="#inter-asset-dependencies--asset-ordering">#</a></h2>
+<p>Sometimes assets reference other assets, like a material referencing its albedo and normal textures. So, when we actually deserialize these assets in Engine, we either need to make sure the images were already loaded before the materials get loaded, or do two-pass loading to fixup the references. I chose the first option for simplicity. This means, however, that the order of assets in our fastfile matters. I do this by grouping the assets by type, and having an explicit type order:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">AssetType</span> <span style="color:#f92672">:</span> u8
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    ASSET_TYPE_GFX_IMAGE <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>    ASSET_TYPE_MATERIAL  <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>    ASSET_TYPE_SCRIPT    <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>,
+</span></span><span style="display:flex;"><span>    ASSET_TYPE_MODEL     <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>,
+</span></span><span style="display:flex;"><span>    etc...
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>As you can see, all of the images are first. That&rsquo;s because they don&rsquo;t reference anything else. Materials need to go after images because they reference images. Scripts don&rsquo;t reference anything, so they can be ordered anywhere, but models can reference materials, so they have to be after materials.</p>
+<h2 id="versioning">Versioning<a hidden class="anchor" aria-hidden="true" href="#versioning">#</a></h2>
+<p>Just like converted assets, we have to consider when we make changes to the converter. If we change the version number on any of the assets, we have to rebuild the fastfile. We also need to have a separate version number just for fastfiles for when the fastfile serialization or metadata is changed, independent of converted assets. In Progression it looks like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">constexpr</span> i32 g_assetVersions[] <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">9</span>,  <span style="color:#75715e">// ASSET_TYPE_GFX_IMAGE, &#34;New name serialization&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#ae81ff">10</span>, <span style="color:#75715e">// ASSET_TYPE_MATERIAL,  &#34;New name serialization&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#ae81ff">1</span>,  <span style="color:#75715e">// ASSET_TYPE_SCRIPT,    &#34;New name serialization&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#ae81ff">6</span>,  <span style="color:#75715e">// ASSET_TYPE_MODEL,     &#34;Add meshlet cull data&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    etc....
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">constexpr</span> u32 PG_FASTFILE_VERSION <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span> <span style="color:#f92672">+</span> ARRAY_SUM( g_assetVersions ); <span style="color:#75715e">// reason
+</span></span></span></code></pre></div><p>The comments are intentionally there so that if two people made different changes and had to bump the same version number, there would be a merge conflict. Without the comment, it would auto-merge to only bump the number by one, even though two changes actually happened.</p>
+<p>One note here, is that I append the version number to the fastfile&rsquo;s name. This works, but anytime it gets bumped the old fastfiles just lay around and take up space. I think it&rsquo;s a better idea to serialize the version number into the fastfile, and then check to see in Engine if the version number matches what it expects. This would keep the cache directory smaller when version bumps happen.</p>
+<h1 id="getting-assets-in-engine">Getting Assets In Engine<a hidden class="anchor" aria-hidden="true" href="#getting-assets-in-engine">#</a></h1>
+<p>In Progression, the AssetManager handles the loading and storing of every asset. See <a href="https://github.com/LiamTyler/Progression/blob/main/code/asset/asset_manager.hpp">asset_manager.hpp</a> and <a href="https://github.com/LiamTyler/Progression/blob/main/code/asset/asset_manager.cpp">asset_manager.cpp</a> for the full code. This is where the <code>LoadFastFile</code> function is implemented, and it&rsquo;s very simple: memory map the fastfile, look at the first asset type, allocate it + call its <code>FastfileLoad</code>, and then move on to the next asset and repeat. There is a hash map per AssetType for storing these:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>unordered_map<span style="color:#f92672">&lt;</span>string, BaseAsset<span style="color:#f92672">*&gt;</span> g_resourceMaps[ASSET_TYPE_COUNT];
+</span></span></code></pre></div><p>You can see that I&rsquo;m just using plain pointers, but you probably want your loaded assets to be ref-counted. I haven&rsquo;t added this yet, but mostly because I load one demo scene at a time, and it doesn&rsquo;t really matter :) If you ever manage multiple scenes though, when you unload a scene, you will want to free the assets that are not shared by any other scene.</p>
+<p>As for accessing these loaded assets, I had decided early on that I wanted to have the interface <code>AssetManager::Get&lt;AssetType&gt;( assetName )</code>. This just seemed nice and simple to me, which is one of the goals I had. An example would be <code>Material* mat = AssetManager::Get&lt;Material&gt;( &quot;wood_floor&quot; );</code>. To make this happen, we need a way to convert from actual template AssetType to its ASSET_TYPE enum value, to appropriately index into <code>g_resourceMaps[ASSET_TYPE_COUNT]</code>. The only way I know how to do that in C++, is to use static variables:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">GetAssetTypeIDHelper</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">static</span> u32 IDCounter;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> Derived<span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">GetAssetTypeID</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> GetAssetTypeIDHelper
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">static</span> u32 <span style="color:#a6e22e">ID</span>()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">static</span> u32 id <span style="color:#f92672">=</span> IDCounter<span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> id;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>We can then do things like <code>GetAssetTypeID&lt;Material&gt;::ID()</code> to get an index from a type. The caveat is that we have to initialize these in the same order their type appears in the ASSET_TYPE enum, which I do at the beginning of <code>AssetManager::Init</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">Init</span>()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    GetAssetTypeID<span style="color:#f92672">&lt;</span>GfxImage<span style="color:#f92672">&gt;::</span>ID(); <span style="color:#75715e">// ASSET_TYPE_GFX_IMAGE
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    GetAssetTypeID<span style="color:#f92672">&lt;</span>Material<span style="color:#f92672">&gt;::</span>ID(); <span style="color:#75715e">// ASSET_TYPE_MATERIAL
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    GetAssetTypeID<span style="color:#f92672">&lt;</span>Script<span style="color:#f92672">&gt;::</span>ID();   <span style="color:#75715e">// ASSET_TYPE_SCRIPT
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    etc...
+</span></span></code></pre></div><p>And with that, we&rsquo;ve covered the entire asset pipeline from start to finish! I hope that gives some more insight into how these pipelines work.</p>
+<h1 id="a-few-final-remarks">A Few Final Remarks<a hidden class="anchor" aria-hidden="true" href="#a-few-final-remarks">#</a></h1>
+<p>There are a few final things I&rsquo;d like to discuss about the whole pipeline, particularly in regards to the high-level goals we initially set out to achieve:</p>
+<p><strong>Performance</strong>: The main goal was to have fast load times. Did we succeed? I&rsquo;d say yes! Here are the load times for two scenes:</p>
+<ul>
+<li><a href="https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Sponza">Crytek Sponza</a>: 41ms, for a 77MB fastfile containing 77 assets</li>
+<li><a href="https://www.intel.com/content/www/us/en/developer/topic-technology/graphics-research/samples.html">Intel Sponza</a>: 428ms, for a 1.212GB fastfile containing 86 assets (has much larger models and 4k textures compared to Crytek&rsquo;s).</li>
+</ul>
+<p>I do have an NVME SSD which helps a lot, but I&rsquo;m still quite pleased with the load times. The load times also include creating and uploading the textures + models to the GPU.
+There was also a secondary goal of decent Converter performance. Now this one heavily depends on what scene you are converting, but overall, my convert times are OK, but not great. For example, a fully fresh convert of Crytek&rsquo;s Sponza takes 2.5 seconds on my machine, while the Intel Sponza (plus a big skybox) takes 36 seconds. However, the second convert once nothing has changed is only 21ms. This is largely because I haven&rsquo;t taken the time to optimize convert times, and for a hobby engine kind of lean towards slow but simple converters compared to a lot of complicated fast paths.</p>
+<p><strong>Hot Reloading</strong>: Currently, my engine doesn&rsquo;t support hot reloading of assets. It did, a long long time ago, but it was implemented awkwardly, so I ripped it out. It&rsquo;s something I&rsquo;d definitely like to add again one day, but honestly for Progression? It doesn&rsquo;t add a lot of value, when booting the Engine and loading a Scene takes less than one second. The iteration time is already very low :)</p>
+<p><strong>Breakage Frequency and Debugging</strong>: Surprisingly, this breaks less often than you&rsquo;d think! It is fairly easy to add bugs, especially with custom serialization and deserialization. However, I find that with the pipeline&rsquo;s simple structure and naming conventions, it rarely takes me a long time to figure out what mistake I made. In my mind, as long as bugs don&rsquo;t happen too often and are quick to fix, then you&rsquo;ve succeeded at something.</p>
+<p><strong>Disk Size + Compression</strong>: This is a huge one that I haven&rsquo;t talked about yet. Any real engine will compress their assets/fastfiles/packages, typically in a format that gives very fast decompression rates (LZ4, Oodle, etc). Progression currently doesn&rsquo;t compress anything however. I would like to add it of course, but part of the reason I haven&rsquo;t bothered yet, is because of some small experiments with LZ4. Since I haven&rsquo;t played around with RDO on my textures, using LZ4 on them usually only saves between 0-2%. Even on the rest of the assets, the savings are not amazing. For example, here are the results of using LZ4 on the entire fastfile for the two Sponza scenes I mentioned above:</p>
+<ul>
+<li>Crytek Sponza: 14.1% savings with default compression, and 20.9% savings with LZ4_HC</li>
+<li>Intel Sponza: 11% savings with default compression, 18% with LZ4_HC</li>
+</ul>
+<p>Not really substantial enough to make me add it yet, especially since LZ4_HC isn&rsquo;t super fast. I&rsquo;d rather just keep the fastest iteration times for now. I do love compression, however, so I definitely want to revisit this at some point, and try to use RDO and make assets compression-friendly :)</p>
+
+
+  <br>
+
+
+<p>And with that, I think I&rsquo;ve covered everything I wanted to. I&rsquo;ll definitely post a part 2, going over how specific assets are converted, but I hope the general pipeline structure makes sense, and why I chose to design it like that. Thanks to everyone who stuck around to read the whole thing, this definitely got longer than I thought it would. Leave a comment if you&rsquo;d like; I&rsquo;d love to hear feedback, and love to hear other decisions people made when structuring their asset pipelines!</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2024 <a href="https://liamtyler.github.io/">Liam&#39;s Graphics Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>
