@@ -6,8 +6,15 @@
     <description>Recent content on Liam&#39;s Graphics Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 07 Jul 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 27 Jul 2024 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://liamtyler.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>A Poor Man&#39;s Render Graph</title>
+      <link>https://liamtyler.github.io/posts/task_graph/</link>
+      <pubDate>Sat, 27 Jul 2024 00:00:00 +0000</pubDate>
+      <guid>https://liamtyler.github.io/posts/task_graph/</guid>
+      <description>Render Graphs, or &amp;ldquo;Task Graphs,&amp;rdquo; rapidly became the standard in the industry ever since Yuriy O&amp;rsquo;Donnell&amp;rsquo;s 2017 GDC presentation on Frostbite&amp;rsquo;s FrameGraph. They provide many benefits, like handling all of the synchronization barriers and resource transitions, reordering tasks for increased performance, reducing memory usage via resource aliasing, and the list goes on for miles. They’re nearly mandatory for large projects these days, given how verbose and error-prone these things would be if done manually with modern APIs like Vulkan and DX12.</description>
+    </item>
     <item>
       <title>Asset Pipelines Part 1</title>
       <link>https://liamtyler.github.io/posts/asset_pipeline_part_1/</link>

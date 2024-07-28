@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head>
+	
+      <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)']]                  
+    }
+  };
+</script>
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>A Poor Man&#39;s Render Graph | Liam&#39;s Graphics Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="Render Graphs, or &ldquo;Task Graphs,&rdquo; rapidly became the standard in the industry ever since Yuriy O&rsquo;Donnell&rsquo;s 2017 GDC presentation on Frostbite&rsquo;s FrameGraph. They provide many benefits, like handling all of the synchronization barriers and resource transitions, reordering tasks for increased performance, reducing memory usage via resource aliasing, and the list goes on for miles. They’re nearly mandatory for large projects these days, given how verbose and error-prone these things would be if done manually with modern APIs like Vulkan and DX12.">
+<meta name="author" content="">
+<link rel="canonical" href="https://liamtyler.github.io/posts/task_graph/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://liamtyler.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://liamtyler.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://liamtyler.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://liamtyler.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://liamtyler.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://liamtyler.github.io/posts/task_graph/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1738KLC2DV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-1738KLC2DV', { 'anonymize_ip': false });
+}
+</script>
+<meta property="og:title" content="A Poor Man&#39;s Render Graph" />
+<meta property="og:description" content="Render Graphs, or &ldquo;Task Graphs,&rdquo; rapidly became the standard in the industry ever since Yuriy O&rsquo;Donnell&rsquo;s 2017 GDC presentation on Frostbite&rsquo;s FrameGraph. They provide many benefits, like handling all of the synchronization barriers and resource transitions, reordering tasks for increased performance, reducing memory usage via resource aliasing, and the list goes on for miles. They’re nearly mandatory for large projects these days, given how verbose and error-prone these things would be if done manually with modern APIs like Vulkan and DX12." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://liamtyler.github.io/posts/task_graph/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2024-07-27T00:00:00+00:00" />
+<meta property="article:modified_time" content="2024-07-27T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="A Poor Man&#39;s Render Graph"/>
+<meta name="twitter:description" content="Render Graphs, or &ldquo;Task Graphs,&rdquo; rapidly became the standard in the industry ever since Yuriy O&rsquo;Donnell&rsquo;s 2017 GDC presentation on Frostbite&rsquo;s FrameGraph. They provide many benefits, like handling all of the synchronization barriers and resource transitions, reordering tasks for increased performance, reducing memory usage via resource aliasing, and the list goes on for miles. They’re nearly mandatory for large projects these days, given how verbose and error-prone these things would be if done manually with modern APIs like Vulkan and DX12."/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://liamtyler.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "A Poor Man's Render Graph",
+      "item": "https://liamtyler.github.io/posts/task_graph/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "A Poor Man's Render Graph",
+  "name": "A Poor Man\u0027s Render Graph",
+  "description": "Render Graphs, or \u0026ldquo;Task Graphs,\u0026rdquo; rapidly became the standard in the industry ever since Yuriy O\u0026rsquo;Donnell\u0026rsquo;s 2017 GDC presentation on Frostbite\u0026rsquo;s FrameGraph. They provide many benefits, like handling all of the synchronization barriers and resource transitions, reordering tasks for increased performance, reducing memory usage via resource aliasing, and the list goes on for miles. They’re nearly mandatory for large projects these days, given how verbose and error-prone these things would be if done manually with modern APIs like Vulkan and DX12.",
+  "keywords": [
+    
+  ],
+  "articleBody": " Render Graphs, or “Task Graphs,” rapidly became the standard in the industry ever since Yuriy O’Donnell’s 2017 GDC presentation on Frostbite’s FrameGraph. They provide many benefits, like handling all of the synchronization barriers and resource transitions, reordering tasks for increased performance, reducing memory usage via resource aliasing, and the list goes on for miles. They’re nearly mandatory for large projects these days, given how verbose and error-prone these things would be if done manually with modern APIs like Vulkan and DX12.\nThis article isn’t to explain their benefits, or how they work, or to discuss their designs from a high level; there are plenty of great resources out there already that do that. Rather, this article is to help fill a smaller niche that I don’t see as many people talk about: what are some concrete examples of task graphs for smaller projects, like hobby game engines? It feels like all too often articles about task graphs immediately dive into topics like acyclic graphs, pruning unreferenced render passes, and parallel command recording on multiple queues. I’d argue, however, that if you’re writing your first task graph system, you absolutely shouldn’t start with any of those things. At least for your personal projects, you were probably never bothered by suboptimal task ordering, had no unreferenced render passes, and had a lot of it single-threaded already. Even professionally, I still don’t think it makes sense to immediately write those features unless you have a huge project that has been optimized a lot.\nIn this article, I’ll describe the task graph I made for my hobby engine Progression. It keeps things simpler by not adding a lot of commonly talked about features: it doesn’t reorder tasks at all, doesn’t do any task pruning, doesn’t rebuild every frame, and only uses one queue. Instead, it just focuses on the core pain points introduced by modern APIs like Vulkan: synchronization, resource transitions, and resource allocation. Out of all the fancier features, I only chose one to start with: resource memory aliasing. I might build on this in the future, of course, but I think it’s already tremendously helpful as-is, and worth sharing. All of the code for this can be found here.\nBuilding The task graph in Progression has two steps: building and compiling. The build step is where all of the passes are defined, all of their inputs and outputs, the resource formats, sizes, etc. I think it’s simplest to just show a real example of how it’s used and walk through it from there:\nTaskGraphBuilder builder; ComputeTaskBuilder* cTask = builder.AddComputeTask( \"FrustumCullMeshes\" ); TGBBufferRef indirectCountBuff = cTask-\u003eAddBufferOutput( \"indirectCountBuff\", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( u32 ), 0 ); TGBBufferRef indirectDrawBuff = cTask-\u003eAddBufferOutput( \"indirectDrawBuff\", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( GpuData::MeshletDrawCommand ) * MAX_MESHES_PER_FRAME ); cTask-\u003eSetFunction( ComputeFrustumCullMeshes ); GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( \"DrawMeshes\" ); gTask-\u003eAddBufferInput( indirectCountBuff, BufferUsage::INDIRECT ); gTask-\u003eAddBufferInput( indirectDrawBuff, BufferUsage::INDIRECT ); TGBTextureRef litOutput = gTask-\u003eAddColorAttachment( \"litOutput\", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE() ); TGBTextureRef sceneDepth = gTask-\u003eAddDepthAttachment( \"sceneDepth\", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f ); gTask-\u003eSetFunction( MeshDrawFunc ); ... First, there is the TaskGraphBuilder object. It’s responsible for creating the list of all the tasks and resources defined. You’ll notice most of the builder-specific objects either have the postfix Builder or the prefix TGB (for task graph builder). Four possible task types that can be created: compute, graphics, transfer, and present. Each task inherits from a base TaskBuilder. This is mainly so that the TaskGraphBuilder can hold a single list of pointers to all the tasks, and it also holds some basic info about each task, like the name, type, and index into the builder’s list. In the above example, a compute task is first defined, which we can dive into next.\nCompute Tasks Compute tasks need support for both buffers and textures for either input or output being added. Graphics tasks also need this functionality, so there is an intermediate builder class that they both inherit from:\nclass PipelineTaskBuilder : public TaskBuilder { public: PipelineTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, TaskType taskType, string_view inName ); TGBTextureRef AddTextureOutput( string_view name, PixelFormat format, const vec4\u0026 clearColor, u32 width, u32 height, u32 depth = 1, u32 arrayLayers = 1, u32 mipLevels = 1 ); TGBTextureRef AddTextureOutput( string_view name, PixelFormat format, u32 width, u32 height, u32 depth = 1, u32 arrayLayers = 1, u32 mipLevels = 1 ); void AddTextureOutput( TGBTextureRef\u0026 texture ); void AddTextureInput( TGBTextureRef\u0026 texture ); TGBBufferRef AddBufferOutput( string_view name, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal ); TGBBufferRef AddBufferOutput( string_view name, VmaMemoryUsage memoryUsage, size_t size ); void AddBufferOutput( TGBBufferRef\u0026 buffer ); void AddBufferInput( TGBBufferRef\u0026 buffer, BufferUsage usageForThisTask = BufferUsage::STORAGE ); vector\u003cTGBBufferTaskInfo\u003e buffers; vector\u003cTGBTextureTaskInfo\u003e textures; }; Notice how for both AddBufferOutput and AddTextureOutput there are three variants: one that defines all the creation parameters (first use of resource), one that defines all of the creation parameters but also adds a clear value/color (again, first use of resource), and one that just takes in a reference to an already created resource. If we look at one of the AddBufferOutput functions, they have three jobs:\nCreate a new TGBBuffer object, which stores all of the info needed to create the resource later. This is stored in TaskGraphBuilder and is shared across all tasks. Create a new TGBBufferTaskInfo object, which is stored directly in the PipelineTaskBuilder. This holds a reference to the actual TGBBuffer resource but also stores extra information relevant to this specific task: does it need to be cleared, whether the resource is being read from or written to, and how it’s used in this task (only used for giving better pipeline stage barriers). Update the buffer’s lifetime. This is because I am doing memory aliasing, so I need to know what the first and last task each resource is used in. As you can see below, PipelineTaskBuilder covers basically all of the functionality that the compute task builder needs. The only missing piece is that the user also needs to supply the function to be called when the task is being executed every frame. I’ll explain this more later, but it’s basically just the function that fills out the command buffer and calls the final dispatch call.\nclass ComputeTaskBuilder : public PipelineTaskBuilder { ComputeFunction function; public: ComputeTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, string_view inName ); void SetFunction( ComputeFunction func ) { function = func; } }; Graphics Tasks The GraphicsTaskBuilder is extremely similar to the ComputeTaskBuilder, so I won’t show the code here. It simply adds the ability to add attachments with AddColorAttachment and AddDepthAttachment functions. They follow the exact same pattern as before with three variants: one for creating a new attachment, one for creating and clearing a new attachment, and one for reusing an attachment. It also takes in a function to be called every frame while the task is being executed that will fill out the command buffer and make all the drawIndexed/whatever calls.\nTransfer Tasks Transfer tasks are simply copies and blits on the GPU. So the builder task simply keeps a list of the copies and blits specified. This task does not take in any user function like the compute and graphics tasks, because we can already write the code ahead of time to perform these copies.\nclass TransferTaskBuilder : public TaskBuilder { public: TransferTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, string_view inName ); void BlitTexture( TGBTextureRef dst, TGBTextureRef src, TextureFilter filter = TextureFilter::LINEAR ); void CopyBuffer( TGBBufferRef dstBuff, u64 dstOffset, TGBBufferRef srcBuff, u64 srcOffset, u64 size ); vector\u003cTGBTextureTransfer\u003e textureBlits; vector\u003cTGBBufferTransfer\u003e bufferCopies; }; The transfer task is something I’m sure I’ll have to expand later, for things like specifying texture subregions, mips, etc. It also would be really nice to have some easy way to do GPU to CPU transfers for debugging, which could maybe be done nicely with these transfer tasks.\nPresent Tasks These are very simple. The only member function they have is SetPresentationImage, which just takes in a TGBTextureRef to the texture you want to present to the screen. There is no function to run each frame; the only thing this task does is transition the image’s layout to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.\nExternal (Non-Transient) Resources One important point here is that any resource declared using the methods above is transient. This means they are expected to only have lifetimes less than or equal to one full frame. This also means that any resources that need to be persistent, like TAA history buffers, need to be created externally. You also sometimes have resources that are created before the task graph is created, like the swapchain. While these allocations might be handled externally, we still want those resources to be valid inputs, outputs, and attachments for any task in the graph. The way I handle this is by letting the user register external resources. One example would be:\nTGBTextureRef swapImg = builder.RegisterExternalTexture( \"swapchainImg\", swapchain.GetFormat(), swapchain.GetWidth(), swapchain.GetHeight(), 1, 1, 1, []() { return rg.swapchain.GetTexture(); } ); ... ComputeTaskBuilder* cTask = builder.AddComputeTask( \"post_process\" ); cTask-\u003eAddTextureInput( litOutput ); cTask-\u003eAddTextureOutput( swapImg ); cTask-\u003eSetFunction( PostProcessFunc ); So, it looks the same as specifying a regular texture inside of a task, except we now also supply a function pointer that returns the desired resource when called. Why a function, and not just supply the resource handle immediately? Because sometimes, like with swapchain images, the resource changes every frame. So, every time the task graph is executed, the first thing it does is call all resource external functions to update the task graph’s internal copy of those resources.\nCompilation Now that we have the tasks and resources defined in the TaskGraphBuilder, it’s time to create the final TaskGraph object by compiling the task graph builder. By that, I mean create all of the GPU resource handles, do the memory aliasing, create the synchronization barriers, and create the final, non-builder, task objects that will be used in every frame. All of the code for this is in r_taskGraph.cpp, look for TaskGraph::Compile.\nResource Creation The first step is to create all of the textures and buffers used by the task graph, which is done in TaskGraph::Compile_BuildResources. This simply loops over all the TGBTexture and TGBBuffer resources in the builder and creates the corresponding renderer objects Gfx::Texture and Gfx::Buffer that have the actual GPU handles. The resource handles are created with vkCreate[Image/Buffer], but the resources aren’t bound to any device memory just yet; that is done later during memory aliasing.\nThe memory aliasing does make this a little more complicated than it normally would be. The code here fills out all of the Texture and Buffer parameters directly instead of using the standard Device::New[Texture/Buffer] functions because those allocate and bind the device memory immediately. We also need to create a ResourceData for each aliasable resource, which is a reference to the resource and its lifetime.\nFor external resources, it’s slightly different. Their allocation happens externally, so they skip calling vkCreate[Image/Buffer] and skip creating a ResourceData. They do, however, still fill out all the info they can in the Gfx::Texture and Gfx::Buffer objects, and are stored in the same list as the transient resources. This is so that there is a unified API later during task graph execution:\nBuffer\u0026 GetBuffer( TGResourceHandle handle ); Texture\u0026 GetTexture( TGResourceHandle handle ); During task execution each frame, they can use these functions to get the handles to their input and output resources, regardless of whether the resource is external or internal. As mentioned a few sections earlier, these slots that hold external resources get updated each frame, which also allows us to have this unified API.\nMemory Aliasing I’ll go through how I do aliasing but forewarning that it’s a bit messy. I wanted to give it a shot without looking anything up, so it’s not the best. It does work, however, and the code can be found r_tg_resource_packing.hpp and r_tg_resource_packing.cpp. You can skip this section if you’re not interested in aliasing.\nGeneral Idea You can view memory aliasing as a 2D rectangle packing problem. The X axis is the task index, and it goes from 0 to the final task’s index. The Y axis is the amount of memory. So, each ResourceData we created earlier actually defines a rectangle in this coordinate space. For example, if we had a 4MB texture that was used in tasks [0, 1] inclusively, then that defines a rectangle of height 4MB and width 2, starting from task 0. That means we need to allocate at least 4MB of memory, which we will call a MemoryBucket. We then place our 4MB texture rectangle inside of this bucket. If we stop here, that would mean regular, non-aliased resources. We can, however, pack more rectangles inside of the bucket, so long as they do not overlap each other at all. For example, if we had two buffers of size 2MB that were used in tasks [2, 3] and [6, 7] respectively, we can pack them vertically in our bucket from Y=[0, 2MB] and Y=[2, 4MB]. This is depicted below (excuse my MS Paint graphics):\nExample result of packing 4 resources, labeled by order they were packed Structure This is where it gets a little messy. At the highest level, we pack resources into MemoryBuckets. These buckets keep track of occupied regions on the X axis, which I call TimeSlices. Each TimeSlice then keeps track of the used regions along the Y axis as a list of Blocks, which are just offset and size pairs. If it’s confusing, the TLDR is that we just need some system to keep track of where the free rectangles are in our bucket.\nAlgorithm I’m sure there are better methods, but the way I did it is the greedy O(N^2) approach:\nSort the ResourceData objects from largest to smallest. Loop through all of the ResourceData: Has this resource been placed into a bucket yet? If yes, then skip until we get an unplaced resource. Create a bucket with the same size as the current resource and place the resource inside of it. This means our bucket has one TimeSlice so far, and that slice has no free blocks in it (because it’s the same size as the bucket). Now loop over all remaining resources and try to fit them into the current bucket (see MemoryBucket::AddResource). This is the hardest part, bookkeeping-wise. It works by: Keep track of which blocks on the Y axis are free so far in a list. At the beginning, we assume the entire region from [0, bucketSize] is free, so there is only one element in the list. Loop over all of the time slices in the bucket and find which ones overlap with our current resource (on the X axis). A single resource could overlap many time slices. For each overlapping time slice, update our list of free blocks to remove any regions that would overlap with the Blocks in these time slices. If there are any free regions left that are at least the size of our resource, we can fit the resource in our bucket. There can be multiple offsets (Blocks) that would fit the resource. In that case, I always choose the one with the lowest offset. Go back through the overlapping time slices and update their free regions to account for adding the current resource. Add new time slices for regions that previously had no resources in them. The last couple steps can be slightly confusing, so think of the image example above. After the first three resource are packed, we need to add the fourth (orange) resource. There will be three time slices at this point. The first one doesn’t get touched, but the second and third ones need to be updated to show that the block from [2, 3MB] is no longer free. We also need to add a new time slice from [4,5], with openings from [0, 2MB] and [3, 4MB], since no time slice existed there before.\nI liked doing it this way because while the bookkeeping was complicated to track all of the free regions, the idea is pretty straightforward. It also means we’re allocating memory for as few large resources as we can, hopefully saving a lot of space.\nFinal Steps The final step is to actually allocate GPU memory and bind resources to it. I use VMA for memory management, which makes this part a lot easier. I highly recommend it. What we do here is loop over each MemoryBucket and allocate one chunk of memory to it using vmaAllocateMemory. Then, we loop over each resource in that bucket and either call vmaBindImageMemory2 or vmaBindBufferMemory2 depending on the resource type, to actually bind the resource to that chunk of memory. These functions conveniently take in the resource Y offsets that we calculated during packing to keep everything non-overlapping. The final thing we do is allocate all of the VkImageView’s, since Vulkan doesn’t let you do that for a VkImage until it has some memory backing it.\nOne small detail I didn’t mention earlier is that some resources have alignment and memory type requirements. So during the packing process, when you’re calculating if 2 blocks overlap, you have to take their aligned offsets and sizes into account. You also have to check if the bitwise AND between their VkMemoryRequirements::memoryTypeBits and if they result in 0, you cannot pack them together at all.\nSynchronization and Tasks Now that all of the resources are created and allocated, the final thing to do is to create the tasks and any barriers necessary. In my opinion, this is where task graphs really shine. Since all of the resources and their usages are defined up front, we can deduce the necessary barriers automatically by tracking how each resource is used, from task to task. This tracking is done by creating a list of objects to store a resource’s\nstruct ResourceTrackingInfo { ImageLayout currLayout = ImageLayout::UNDEFINED; u16 prevTask = NO_TASK; TaskType prevTaskType = TaskType::NONE; ResourceState prevState; // read, read_write, write ResourceType prevResType = ResourceType::NONE; // buffer, texture, color attach, etc }; I don’t do anything fancy here, and really just walk through each case for each task. The code is pretty verbose (see r_taskGraph.cpp::Compile_SynchronizationAndTasks), but I’ll show a couple small examples from the Compile_ComputeTask code path for clarity:\nfor ( const TGBTextureTaskInfo\u0026 texInfo : bpTask-\u003etextures ) { TGResourceHandle index = texInfo.ref.index; const TGBTexture\u0026 buildTexture = builder.textures[index]; ResourceTrackingInfo\u0026 trackInfo = builder.texTracking[index]; ResourceType resType = ResourceType::TEXTURE; ImageLayout desiredLayout = InferImageLayout( taskType, texInfo.state, buildTexture.format ); ... if ( trackInfo.prevTask != NO_TASK \u0026\u0026 trackInfo.prevState != ResourceState::READ ) { // barrier to wait for any previous writes to be complete VkImageMemoryBarrier2 barrier = GetImageBarrier( index, trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType, taskType, texInfo.state, resType, trackInfo.currLayout, desiredLayout ); pTask-\u003eimageBarriers.push_back( barrier ); } else if ( trackInfo.prevTask == NO_TASK ) { // no writes to wait for, but a barrier is still needed to transition the image to the correct layout TG_ASSERT( trackInfo.currLayout == ImageLayout::UNDEFINED, \"Should be the first use of this texture\" ); VkImageMemoryBarrier2 barrier = GetImageBarrier( index, TaskType::NONE, ResourceState::UNUSED, trackInfo.prevResType, taskType, texInfo.state, resType, trackInfo.currLayout, desiredLayout ); pTask-\u003eimageBarriers.push_back( barrier ); } ... For full details, please see the code. The main thing here in all of these functions is checking to see if the resource is switching to reads or writes, then writing code (if needed) for all of the cases: R-\u003eR, R-\u003eW, W-\u003eW, W-\u003eR. I make the assumption that back to back writes need to have a barrier inbetween them, though this would be suboptimal if the shaders actually wrote to different regions of the resource. If the resource is a render target attachment however,\nHandling Clears Each task holds a list of buffer and image barriers to execute before running the actual core function of the task. The compute and graphics tasks also hold lists of any resource clears that need to be performed before the core function is run. Clears can only happen on the first use of the resource, so we don’t need barriers before the clear happens. Well, that is true for buffers, but sadly not for images. To do a generic vkCmdClearColorImage on an image, we need make sure it has ImageLayout::TRANSFER_DST. So have one extra list of barriers for images, that can run before clear operations. This only applies to non-attachment images for the record. Attachments that want to be cleared use VK_ATTACHMENT_LOAD_OP_CLEAR instead of vkCmdClearColorImage. We also still need barriers after the clear happens, to wait for it to be done before reading or writing to those resources.\nRender Passes For graphics tasks, this is also the step that needs to create the render pass, or gather the information needed for the VkRenderingAttachmentInfo if you are using dynamic rendering. This is very straight forward, since we have a list of all the attachments already, and the storeOp and loadOp can easily be deduced. I actually wrote the first iteration of this task graph using render pass objects, and later switched to dynamic rendering. I found that it was basically the same amount of bookkeeping, so there is little impact either way you choose.\nFinal Notes There are a couple final things to note here. Ideally we would think about batching barriers together and reordering tasks to minimize the number of barriers and batches. That would give better performance, but again is one of the things I intentionally ignored for this engine. To be honest, it’s also unclear to me how to reorder tasks to minimize both barriers and maximize memory aliasing at the same time. The second thing to note here, is that the barriers need the VkImage/VkBuffer handles. Since we have external resources that don’t supply that handle until execution time, the resource index is instead stored in the barrier handle:\nVkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 }; barrier.image = reinterpret_cast\u003cVkImage\u003e( imageIndex ); Then during execution time, we use that index to lookup the now-valid resource handle and set it appropriately.\nExecution At this point, the task graph is ready to be used during each frame’s rendering. The steps are pretty straight forward:\nCall every external resource’s function to update the task graph’s copy of those resource handles Loop over each task in order and do the following: Submit any pre-clear image barriers, if the task has any Perform any buffer/image clears, if the task has any Submit the regular (not pre-clear) buffer and image barriers Call the user function in the case of compute and graphics tasks, or perform the transfers for transfer tasks The last piece to talk about, is how user task functions look. Here is an example from that frustum culling task shown at the beginning of the article:\nvoid ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data ) { ... CommandBuffer\u0026 cmdBuf = *data-\u003ecmdBuf; cmdBuf.BindPipeline( PipelineManager::GetPipeline( \"frustum_cull_meshes\" ) ); cmdBuf.BindGlobalDescriptors(); struct ComputePushConstants { VkDeviceAddress cullDataBuffer; VkDeviceAddress outputCountBuffer; VkDeviceAddress indirectCmdOutputBuffer; u32 numMeshes; u32 _pad; }; ComputePushConstants push; push.cullDataBuffer = data-\u003eframeData-\u003emeshCullData.GetDeviceAddress(); push.outputCountBuffer = task-\u003eGetOutputBuffer( 0 ).GetDeviceAddress(); push.indirectCmdOutputBuffer = task-\u003eGetOutputBuffer( 1 ).GetDeviceAddress(); push.numMeshes = meshNum; cmdBuf.PushConstants( push ); cmdBuf.Dispatch_AutoSized( meshNum, 1, 1 ); } You can see that the function is able to get the task-specific resources directly, like task-\u003eGetOutputBuffer( 0 ). The number passed in is the order those resources were defined in the builder task, so the order of AddBufferOutput matters. You could do this differently to be less error-prone, but I thought a direct array lookup was nice and I haven’t had any issues with it so far.\nConclusion Hopefully that whirlwind tour made sense; there was a lot of code to show, describe, or skip entirely. There are a lot of ways this task graph system isn’t ideal, and plenty of ways I would love to extend it more in the future. Even as it is right now though, I find it tremendously helpful. I hope it serves as an example for people getting started on smaller project task graphs, because you can write them without too much hastle in the end, and you should because they’re so helpful with modern APIs.\n",
+  "wordCount" : "3946",
+  "inLanguage": "en",
+  "datePublished": "2024-07-27T00:00:00Z",
+  "dateModified": "2024-07-27T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://liamtyler.github.io/posts/task_graph/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Liam's Graphics Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://liamtyler.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://liamtyler.github.io/" accesskey="h" title="Liam&#39;s Graphics Blog (Alt + H)">Liam&#39;s Graphics Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://liamtyler.github.io/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://liamtyler.github.io/about/" title="About">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://liamtyler.github.io/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      A Poor Man&#39;s Render Graph
+    </h1>
+    <div class="post-meta"><span title='2024-07-27 00:00:00 +0000 UTC'>July 27, 2024</span>
+
+</div>
+  </header> 
+  <div class="post-content">
+
+  <link href="/lightbox.css" rel="stylesheet" />
+  <link href="/custom_css.css" rel="stylesheet" />
+
+
+<p>Render Graphs, or &ldquo;Task Graphs,&rdquo; rapidly became the standard in the industry ever since Yuriy O&rsquo;Donnell&rsquo;s <a href="https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in">2017 GDC presentation on Frostbite&rsquo;s FrameGraph</a>. They provide many benefits, like handling all of the synchronization barriers and resource transitions, reordering tasks for increased performance, reducing memory usage via resource aliasing, and the list goes on for miles. They’re nearly mandatory for large projects these days, given how verbose and error-prone these things would be if done manually with modern APIs like Vulkan and DX12.</p>
+<p>This article isn’t to explain their benefits, or how they work, or to discuss their designs from a high level; there are plenty of great resources out there already that do that. Rather, this article is to help fill a smaller niche that I don’t see as many people talk about: what are some concrete examples of task graphs for smaller projects, like hobby game engines? It feels like all too often articles about task graphs immediately dive into topics like acyclic graphs, pruning unreferenced render passes, and parallel command recording on multiple queues. I&rsquo;d argue, however, that if you&rsquo;re writing your first task graph system, you absolutely shouldn&rsquo;t start with any of those things. At least for your personal projects, you were probably never bothered by suboptimal task ordering, had no unreferenced render passes, and had a lot of it single-threaded already. Even professionally, I still don&rsquo;t think it makes sense to immediately write those features unless you have a huge project that has been optimized a lot.</p>
+<p>In this article, I&rsquo;ll describe the task graph I made for my hobby engine <a href="https://github.com/LiamTyler/Progression">Progression</a>. It keeps things simpler by not adding a lot of commonly talked about features: it doesn&rsquo;t reorder tasks at all, doesn&rsquo;t do any task pruning, doesn&rsquo;t rebuild every frame, and only uses one queue. Instead, it just focuses on the core pain points introduced by modern APIs like Vulkan: synchronization, resource transitions, and resource allocation. Out of all the fancier features, I only chose one to start with: resource memory aliasing. I might build on this in the future, of course, but I think it&rsquo;s already tremendously helpful as-is, and worth sharing. All of the code for this can be found <a href="https://github.com/LiamTyler/Progression/tree/main/code/renderer/taskgraph/">here</a>.</p>
+<h2 id="building">Building<a hidden class="anchor" aria-hidden="true" href="#building">#</a></h2>
+<p>The task graph in Progression has two steps: building and compiling. The build step is where all of the passes are defined, all of their inputs and outputs, the resource formats, sizes, etc. I think it&rsquo;s simplest to just show a <a href="https://github.com/LiamTyler/Progression/blob/main/code/renderer/render_system.cpp#L239">real example</a> of how it&rsquo;s used and walk through it from there:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>TaskGraphBuilder builder;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ComputeTaskBuilder<span style="color:#f92672">*</span> cTask      <span style="color:#f92672">=</span> builder.<span style="color:#a6e22e">AddComputeTask</span>( <span style="color:#e6db74">&#34;FrustumCullMeshes&#34;</span> );
+</span></span><span style="display:flex;"><span>TGBBufferRef indirectCountBuff <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>    cTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">AddBufferOutput</span>( <span style="color:#e6db74">&#34;indirectCountBuff&#34;</span>, VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, <span style="color:#66d9ef">sizeof</span>( u32 ), <span style="color:#ae81ff">0</span> );
+</span></span><span style="display:flex;"><span>TGBBufferRef indirectDrawBuff <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>    cTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">AddBufferOutput</span>( <span style="color:#e6db74">&#34;indirectDrawBuff&#34;</span>, VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+</span></span><span style="display:flex;"><span>                            <span style="color:#66d9ef">sizeof</span>( GpuData<span style="color:#f92672">::</span>MeshletDrawCommand ) <span style="color:#f92672">*</span> MAX_MESHES_PER_FRAME );
+</span></span><span style="display:flex;"><span>cTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">SetFunction</span>( ComputeFrustumCullMeshes );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>GraphicsTaskBuilder<span style="color:#f92672">*</span> gTask <span style="color:#f92672">=</span> builder.<span style="color:#a6e22e">AddGraphicsTask</span>( <span style="color:#e6db74">&#34;DrawMeshes&#34;</span> );
+</span></span><span style="display:flex;"><span>gTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">AddBufferInput</span>( indirectCountBuff, BufferUsage<span style="color:#f92672">::</span>INDIRECT );
+</span></span><span style="display:flex;"><span>gTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">AddBufferInput</span>( indirectDrawBuff, BufferUsage<span style="color:#f92672">::</span>INDIRECT );
+</span></span><span style="display:flex;"><span>TGBTextureRef litOutput  <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>    gTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">AddColorAttachment</span>( <span style="color:#e6db74">&#34;litOutput&#34;</span>, PixelFormat<span style="color:#f92672">::</span>R16_G16_B16_A16_FLOAT, <span style="color:#a6e22e">SIZE_SCENE</span>(), <span style="color:#a6e22e">SIZE_SCENE</span>() );
+</span></span><span style="display:flex;"><span>TGBTextureRef sceneDepth <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>    gTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">AddDepthAttachment</span>( <span style="color:#e6db74">&#34;sceneDepth&#34;</span>, PixelFormat<span style="color:#f92672">::</span>DEPTH_32_FLOAT, <span style="color:#a6e22e">SIZE_SCENE</span>(), <span style="color:#a6e22e">SIZE_SCENE</span>(), <span style="color:#ae81ff">1.0f</span> );
+</span></span><span style="display:flex;"><span>gTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">SetFunction</span>( MeshDrawFunc );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>First, there is the <code>TaskGraphBuilder</code> object. It&rsquo;s responsible for creating the list of all the tasks and resources defined. You&rsquo;ll notice most of the builder-specific objects either have the postfix <code>Builder</code> or the prefix <code>TGB</code> (for task graph builder). Four possible task types that can be created: compute, graphics, transfer, and present. Each task inherits from a base <code>TaskBuilder</code>. This is mainly so that the <code>TaskGraphBuilder</code> can hold a single list of pointers to all the tasks, and it also holds some basic info about each task, like the name, type, and index into the builder&rsquo;s list. In the above example, a compute task is first defined, which we can dive into next.</p>
+<h3 id="compute-tasks">Compute Tasks<a hidden class="anchor" aria-hidden="true" href="#compute-tasks">#</a></h3>
+<p>Compute tasks need support for both buffers and textures for either input or output being added. Graphics tasks also need this functionality, so there is an intermediate builder class that they both inherit from:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">PipelineTaskBuilder</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> TaskBuilder
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>    PipelineTaskBuilder( TaskGraphBuilder<span style="color:#f92672">*</span> inBuilder, u16 taskIndex, TaskType taskType, string_view inName );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    TGBTextureRef <span style="color:#a6e22e">AddTextureOutput</span>( string_view name, PixelFormat format, <span style="color:#66d9ef">const</span> vec4<span style="color:#f92672">&amp;</span> clearColor,
+</span></span><span style="display:flex;"><span>        u32 width, u32 height, u32 depth <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, u32 arrayLayers <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, u32 mipLevels <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span> );
+</span></span><span style="display:flex;"><span>    TGBTextureRef <span style="color:#a6e22e">AddTextureOutput</span>( string_view name, PixelFormat format,
+</span></span><span style="display:flex;"><span>        u32 width, u32 height, u32 depth <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, u32 arrayLayers <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, u32 mipLevels <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span> );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">AddTextureOutput</span>( TGBTextureRef<span style="color:#f92672">&amp;</span> texture );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">AddTextureInput</span>( TGBTextureRef<span style="color:#f92672">&amp;</span> texture );
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    TGBBufferRef <span style="color:#a6e22e">AddBufferOutput</span>( string_view name, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal );
+</span></span><span style="display:flex;"><span>    TGBBufferRef <span style="color:#a6e22e">AddBufferOutput</span>( string_view name, VmaMemoryUsage memoryUsage, size_t size );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">AddBufferOutput</span>( TGBBufferRef<span style="color:#f92672">&amp;</span> buffer );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">AddBufferInput</span>( TGBBufferRef<span style="color:#f92672">&amp;</span> buffer, BufferUsage usageForThisTask <span style="color:#f92672">=</span> BufferUsage<span style="color:#f92672">::</span>STORAGE );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    vector<span style="color:#f92672">&lt;</span>TGBBufferTaskInfo<span style="color:#f92672">&gt;</span> buffers;
+</span></span><span style="display:flex;"><span>    vector<span style="color:#f92672">&lt;</span>TGBTextureTaskInfo<span style="color:#f92672">&gt;</span> textures;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>Notice how for both <code>AddBufferOutput</code> and <code>AddTextureOutput</code> there are three variants: one that defines all the creation parameters (first use of resource), one that defines all of the creation parameters but also adds a clear value/color (again, first use of resource), and one that just takes in a reference to an already created resource. If we look at one of the <code>AddBufferOutput</code> functions, they have three jobs:</p>
+<ol>
+<li>Create a new <code>TGBBuffer</code> object, which stores all of the info needed to create the resource later. This is stored in <code>TaskGraphBuilder</code> and is shared across all tasks.</li>
+<li>Create a new <code>TGBBufferTaskInfo</code> object, which is stored directly in the <code>PipelineTaskBuilder</code>. This holds a reference to the actual <code>TGBBuffer</code> resource but also stores extra information relevant to this specific task: does it need to be cleared, whether the resource is being read from or written to, and how it&rsquo;s used in this task (only used for giving better pipeline stage barriers).</li>
+<li>Update the buffer&rsquo;s lifetime. This is because I am doing memory aliasing, so I need to know what the first and last task each resource is used in.</li>
+</ol>
+<p>As you can see below, <code>PipelineTaskBuilder</code> covers basically all of the functionality that the compute task builder needs. The only missing piece is that the user also needs to supply the function to be called when the task is being executed every frame. I&rsquo;ll explain this more later, but it&rsquo;s basically just the function that fills out the command buffer and calls the final dispatch call.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ComputeTaskBuilder</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> PipelineTaskBuilder
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    ComputeFunction function;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>    ComputeTaskBuilder( TaskGraphBuilder<span style="color:#f92672">*</span> inBuilder, u16 taskIndex, string_view inName );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SetFunction</span>( ComputeFunction func ) { function <span style="color:#f92672">=</span> func; }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><h3 id="graphics-tasks">Graphics Tasks<a hidden class="anchor" aria-hidden="true" href="#graphics-tasks">#</a></h3>
+<p>The <code>GraphicsTaskBuilder</code> is extremely similar to the <code>ComputeTaskBuilder</code>, so I won&rsquo;t show the code here. It simply adds the ability to add attachments with <code>AddColorAttachment</code> and <code>AddDepthAttachment</code> functions. They follow the exact same pattern as before with three variants: one for creating a new attachment, one for creating and clearing a new attachment, and one for reusing an attachment. It also takes in a function to be called every frame while the task is being executed that will fill out the command buffer and make all the drawIndexed/whatever calls.</p>
+<h3 id="transfer-tasks">Transfer Tasks<a hidden class="anchor" aria-hidden="true" href="#transfer-tasks">#</a></h3>
+<p>Transfer tasks are simply copies and blits on the GPU. So the builder task simply keeps a list of the copies and blits specified. This task does not take in any user function like the compute and graphics tasks, because we can already write the code ahead of time to perform these copies.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">TransferTaskBuilder</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> TaskBuilder
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>    TransferTaskBuilder( TaskGraphBuilder<span style="color:#f92672">*</span> inBuilder, u16 taskIndex, string_view inName );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">BlitTexture</span>( TGBTextureRef dst, TGBTextureRef src, TextureFilter filter <span style="color:#f92672">=</span> TextureFilter<span style="color:#f92672">::</span>LINEAR );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">CopyBuffer</span>( TGBBufferRef dstBuff, u64 dstOffset, TGBBufferRef srcBuff, u64 srcOffset, u64 size );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    vector<span style="color:#f92672">&lt;</span>TGBTextureTransfer<span style="color:#f92672">&gt;</span> textureBlits;
+</span></span><span style="display:flex;"><span>    vector<span style="color:#f92672">&lt;</span>TGBBufferTransfer<span style="color:#f92672">&gt;</span> bufferCopies;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>The transfer task is something I&rsquo;m sure I&rsquo;ll have to expand later, for things like specifying texture subregions, mips, etc. It also would be really nice to have some easy way to do GPU to CPU transfers for debugging, which could maybe be done nicely with these transfer tasks.</p>
+<h3 id="present-tasks">Present Tasks<a hidden class="anchor" aria-hidden="true" href="#present-tasks">#</a></h3>
+<p>These are very simple. The only member function they have is <code>SetPresentationImage</code>, which just takes in a <code>TGBTextureRef</code> to the texture you want to present to the screen. There is no function to run each frame; the only thing this task does is transition the image&rsquo;s layout to <code>VK_IMAGE_LAYOUT_PRESENT_SRC_KHR</code>.</p>
+<h3 id="external-non-transient-resources">External (Non-Transient) Resources<a hidden class="anchor" aria-hidden="true" href="#external-non-transient-resources">#</a></h3>
+<p>One important point here is that any resource declared using the methods above is transient. This means they are expected to only have lifetimes less than or equal to one full frame. This also means that any resources that need to be persistent, like TAA history buffers, need to be created externally. You also sometimes have resources that are created before the task graph is created, like the swapchain. While these allocations might be handled externally, we still want those resources to be valid inputs, outputs, and attachments for any task in the graph. The way I handle this is by letting the user register external resources. One example would be:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>TGBTextureRef swapImg <span style="color:#f92672">=</span> builder.<span style="color:#a6e22e">RegisterExternalTexture</span>( <span style="color:#e6db74">&#34;swapchainImg&#34;</span>,
+</span></span><span style="display:flex;"><span>    swapchain.<span style="color:#a6e22e">GetFormat</span>(), swapchain.<span style="color:#a6e22e">GetWidth</span>(), swapchain.<span style="color:#a6e22e">GetHeight</span>(), <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>    []() { <span style="color:#66d9ef">return</span> rg.swapchain.<span style="color:#a6e22e">GetTexture</span>(); } );
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ComputeTaskBuilder<span style="color:#f92672">*</span> cTask <span style="color:#f92672">=</span> builder.<span style="color:#a6e22e">AddComputeTask</span>( <span style="color:#e6db74">&#34;post_process&#34;</span> );
+</span></span><span style="display:flex;"><span>cTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">AddTextureInput</span>( litOutput );
+</span></span><span style="display:flex;"><span>cTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">AddTextureOutput</span>( swapImg );
+</span></span><span style="display:flex;"><span>cTask<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">SetFunction</span>( PostProcessFunc );
+</span></span></code></pre></div><p>So, it looks the same as specifying a regular texture inside of a task, except we now also supply a function pointer that returns the desired resource when called. Why a function, and not just supply the resource handle immediately? Because sometimes, like with swapchain images, the resource changes every frame. So, every time the task graph is executed, the first thing it does is call all resource external functions to update the task graph&rsquo;s internal copy of those resources.</p>
+<h2 id="compilation">Compilation<a hidden class="anchor" aria-hidden="true" href="#compilation">#</a></h2>
+<p>Now that we have the tasks and resources defined in the <code>TaskGraphBuilder</code>, it&rsquo;s time to create the final <code>TaskGraph</code> object by compiling the task graph builder. By that, I mean create all of the GPU resource handles, do the memory aliasing, create the synchronization barriers, and create the final, non-builder, task objects that will be used in every frame. All of the code for this is in <a href="https://github.com/LiamTyler/Progression/blob/main/code/renderer/taskgraph/r_taskGraph.cpp">r_taskGraph.cpp</a>, look for <code>TaskGraph::Compile</code>.</p>
+<h3 id="resource-creation">Resource Creation<a hidden class="anchor" aria-hidden="true" href="#resource-creation">#</a></h3>
+<p>The first step is to create all of the textures and buffers used by the task graph, which is done in <code>TaskGraph::Compile_BuildResources</code>. This simply loops over all the <code>TGBTexture</code> and <code>TGBBuffer</code> resources in the builder and creates the corresponding renderer objects <code>Gfx::Texture</code> and <code>Gfx::Buffer</code> that have the actual GPU handles. The resource handles are created with <code>vkCreate[Image/Buffer]</code>, but the resources aren&rsquo;t bound to any device memory just yet; that is done later during memory aliasing.</p>
+<p>The memory aliasing does make this a little more complicated than it normally would be. The code here fills out all of the Texture and Buffer parameters directly instead of using the standard <code>Device::New[Texture/Buffer]</code> functions because those allocate and bind the device memory immediately. We also need to create a <code>ResourceData</code> for each aliasable resource, which is a reference to the resource and its lifetime.</p>
+<p>For external resources, it&rsquo;s slightly different. Their allocation happens externally, so they skip calling <code>vkCreate[Image/Buffer]</code> and skip creating a <code>ResourceData</code>. They do, however, still fill out all the info they can in the <code>Gfx::Texture</code> and <code>Gfx::Buffer</code> objects, and are stored in the same list as the transient resources. This is so that there is a unified API later during task graph execution:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span>Buffer<span style="color:#f92672">&amp;</span> <span style="color:#a6e22e">GetBuffer</span>( TGResourceHandle handle );
+</span></span><span style="display:flex;"><span>Texture<span style="color:#f92672">&amp;</span> <span style="color:#a6e22e">GetTexture</span>( TGResourceHandle handle );
+</span></span></code></pre></div><p>During task execution each frame, they can use these functions to get the handles to their input and output resources, regardless of whether the resource is external or internal. As mentioned a few sections earlier, these slots that hold external resources get updated each frame, which also allows us to have this unified API.</p>
+<h3 id="memory-aliasing">Memory Aliasing<a hidden class="anchor" aria-hidden="true" href="#memory-aliasing">#</a></h3>
+<p>I&rsquo;ll go through how I do aliasing but forewarning that it&rsquo;s a bit messy. I wanted to give it a shot without looking anything up, so it&rsquo;s not the best. It does work, however, and the code can be found <a href="https://github.com/LiamTyler/Progression/blob/main/code/renderer/taskgraph/internal/r_tg_resource_packing.hpp">r_tg_resource_packing.hpp</a> and <a href="https://github.com/LiamTyler/Progression/blob/main/code/renderer/taskgraph/internal/r_tg_resource_packing.cpp">r_tg_resource_packing.cpp</a>. You can skip this section if you&rsquo;re not interested in aliasing.</p>
+<h4 id="general-idea">General Idea<a hidden class="anchor" aria-hidden="true" href="#general-idea">#</a></h4>
+<p>You can view memory aliasing as a 2D rectangle packing problem. The X axis is the task index, and it goes from 0 to the final task&rsquo;s index. The Y axis is the amount of memory. So, each <code>ResourceData</code> we created earlier actually defines a rectangle in this coordinate space. For example, if we had a 4MB texture that was used in tasks [0, 1] inclusively, then that defines a rectangle of height 4MB and width 2, starting from task 0. That means we need to allocate at least 4MB of memory, which we will call a <code>MemoryBucket</code>. We then place our 4MB texture rectangle inside of this bucket. If we stop here, that would mean regular, non-aliased resources. We can, however, pack more rectangles inside of the bucket, so long as they do not overlap each other at all. For example, if we had two buffers of size 2MB that were used in tasks [2, 3] and [6, 7] respectively, we can pack them vertically in our bucket from Y=[0, 2MB] and Y=[2, 4MB]. This is depicted below (excuse my MS Paint graphics):</p>
+
+
+
+
+
+
+<div style="text-align: center">
+  <a href="/task_graph/aliasing_2.png" data-lightbox="none" data-title="Example result of packing 4 resources, labeled by order they were packed" style="color: inherit; text-decoration: none; margin: 0">
+    <figure style="margin: 0; margin-bottom: 5px">
+      <img
+        src="/task_graph/aliasing_2.png"
+		alt="A depiction of how 4 resources could pack together into same bucket."
+        decoding="async"
+	
+		style="margin: 0;"
+	
+      />
+      <figcaption style="margin: 0">Example result of packing 4 resources, labeled by order they were packed</figcaption>
+    </figure>
+  </a>
+</div>
+
+<h4 id="structure">Structure<a hidden class="anchor" aria-hidden="true" href="#structure">#</a></h4>
+<p>This is where it gets a little messy. At the highest level, we pack resources into <code>MemoryBuckets</code>. These buckets keep track of occupied regions on the X axis, which I call <code>TimeSlices</code>. Each <code>TimeSlice</code> then keeps track of the used regions along the Y axis as a list of <code>Blocks</code>, which are just offset and size pairs. If it&rsquo;s confusing, the TLDR is that we just need some system to keep track of where the free rectangles are in our bucket.</p>
+<h4 id="algorithm">Algorithm<a hidden class="anchor" aria-hidden="true" href="#algorithm">#</a></h4>
+<p>I&rsquo;m sure there are better methods, but the way I did it is the greedy O(N^2) approach:</p>
+<ol>
+<li>Sort the <code>ResourceData</code> objects from largest to smallest.</li>
+<li>Loop through all of the <code>ResourceData</code>:
+<ol>
+<li>Has this resource been placed into a bucket yet? If yes, then skip until we get an unplaced resource.</li>
+<li>Create a bucket with the same size as the current resource and place the resource inside of it. This means our bucket has one <code>TimeSlice</code> so far, and that slice has no free blocks in it (because it&rsquo;s the same size as the bucket).</li>
+<li>Now loop over all remaining resources and try to fit them into the current bucket (see <code>MemoryBucket::AddResource</code>). This is the hardest part, bookkeeping-wise. It works by:
+<ol>
+<li>Keep track of which blocks on the Y axis are free so far in a list. At the beginning, we assume the entire region from [0, bucketSize] is free, so there is only one element in the list.</li>
+<li>Loop over all of the time slices in the bucket and find which ones overlap with our current resource (on the X axis). A single resource could overlap many time slices.</li>
+<li>For each overlapping time slice, update our list of free blocks to remove any regions that would overlap with the Blocks in these time slices.</li>
+<li>If there are any free regions left that are at least the size of our resource, we can fit the resource in our bucket. There can be multiple offsets (Blocks) that would fit the resource. In that case, I always choose the one with the lowest offset.</li>
+<li>Go back through the overlapping time slices and update their free regions to account for adding the current resource.</li>
+<li>Add new time slices for regions that previously had no resources in them.</li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+<p>The last couple steps can be slightly confusing, so think of the image example above. After the first three resource are packed, we need to add the fourth (orange) resource. There will be three time slices at this point. The first one doesn&rsquo;t get touched, but the second and third ones need to be updated to show that the block from [2, 3MB] is no longer free. We also need to add a new time slice from [4,5], with openings from [0, 2MB] and [3, 4MB], since no time slice existed there before.</p>
+<p>I liked doing it this way because while the bookkeeping was complicated to track all of the free regions, the idea is pretty straightforward. It also means we&rsquo;re allocating memory for as few large resources as we can, hopefully saving a lot of space.</p>
+<h4 id="final-steps">Final Steps<a hidden class="anchor" aria-hidden="true" href="#final-steps">#</a></h4>
+<p>The final step is to actually allocate GPU memory and bind resources to it. I use <a href="https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator">VMA</a> for memory management, which makes this part a lot easier. I highly recommend it. What we do here is loop over each <code>MemoryBucket</code> and allocate one chunk of memory to it using <code>vmaAllocateMemory</code>. Then, we loop over each resource in that bucket and either call <code>vmaBindImageMemory2</code> or <code>vmaBindBufferMemory2</code> depending on the resource type, to actually bind the resource to that chunk of memory. These functions conveniently take in the resource Y offsets that we calculated during packing to keep everything non-overlapping. The final thing we do is allocate all of the VkImageView&rsquo;s, since Vulkan doesn&rsquo;t let you do that for a VkImage until it has some memory backing it.</p>
+<p>One small detail I didn&rsquo;t mention earlier is that some resources have alignment and memory type requirements. So during the packing process, when you&rsquo;re calculating if 2 blocks overlap, you have to take their aligned offsets and sizes into account. You also have to check if the bitwise AND between their <code>VkMemoryRequirements::memoryTypeBits</code> and if they result in 0, you cannot pack them together at all.</p>
+<h3 id="synchronization-and-tasks">Synchronization and Tasks<a hidden class="anchor" aria-hidden="true" href="#synchronization-and-tasks">#</a></h3>
+<p>Now that all of the resources are created and allocated, the final thing to do is to create the tasks and any barriers necessary. In my opinion, this is where task graphs really shine. Since all of the resources and their usages are defined up front, we can deduce the necessary barriers automatically by tracking how each resource is used, from task to task. This tracking is done by creating a list of objects to store a resource&rsquo;s</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ResourceTrackingInfo</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    ImageLayout currLayout   <span style="color:#f92672">=</span> ImageLayout<span style="color:#f92672">::</span>UNDEFINED;
+</span></span><span style="display:flex;"><span>    u16 prevTask             <span style="color:#f92672">=</span> NO_TASK;
+</span></span><span style="display:flex;"><span>    TaskType prevTaskType    <span style="color:#f92672">=</span> TaskType<span style="color:#f92672">::</span>NONE;
+</span></span><span style="display:flex;"><span>    ResourceState prevState; <span style="color:#75715e">// read, read_write, write
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    ResourceType prevResType <span style="color:#f92672">=</span> ResourceType<span style="color:#f92672">::</span>NONE; <span style="color:#75715e">// buffer, texture, color attach, etc
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span></code></pre></div><p>I don&rsquo;t do anything fancy here, and really just walk through each case for each task. The code is pretty verbose (see <code>r_taskGraph.cpp::Compile_SynchronizationAndTasks</code>), but I&rsquo;ll show a couple small examples from the <code>Compile_ComputeTask</code> code path for clarity:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">for</span> ( <span style="color:#66d9ef">const</span> TGBTextureTaskInfo<span style="color:#f92672">&amp;</span> texInfo : bpTask<span style="color:#f92672">-&gt;</span>textures )
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    TGResourceHandle index          <span style="color:#f92672">=</span> texInfo.ref.index;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> TGBTexture<span style="color:#f92672">&amp;</span> buildTexture  <span style="color:#f92672">=</span> builder.textures[index];
+</span></span><span style="display:flex;"><span>    ResourceTrackingInfo<span style="color:#f92672">&amp;</span> trackInfo <span style="color:#f92672">=</span> builder.texTracking[index];
+</span></span><span style="display:flex;"><span>    ResourceType resType            <span style="color:#f92672">=</span> ResourceType<span style="color:#f92672">::</span>TEXTURE;
+</span></span><span style="display:flex;"><span>    ImageLayout desiredLayout       <span style="color:#f92672">=</span> <span style="color:#a6e22e">InferImageLayout</span>( taskType, texInfo.state, buildTexture.format );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( trackInfo.prevTask <span style="color:#f92672">!=</span> NO_TASK <span style="color:#f92672">&amp;&amp;</span> trackInfo.prevState <span style="color:#f92672">!=</span> ResourceState<span style="color:#f92672">::</span>READ )
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// barrier to wait for any previous writes to be complete
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        VkImageMemoryBarrier2 barrier <span style="color:#f92672">=</span> <span style="color:#a6e22e">GetImageBarrier</span>( index, trackInfo.prevTaskType, trackInfo.prevState, 
+</span></span><span style="display:flex;"><span>            trackInfo.prevResType, taskType, texInfo.state, resType, trackInfo.currLayout, desiredLayout );
+</span></span><span style="display:flex;"><span>        pTask<span style="color:#f92672">-&gt;</span>imageBarriers.<span style="color:#a6e22e">push_back</span>( barrier );
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> ( trackInfo.prevTask <span style="color:#f92672">==</span> NO_TASK )
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// no writes to wait for, but a barrier is still needed to transition the image to the correct layout
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">TG_ASSERT</span>( trackInfo.currLayout <span style="color:#f92672">==</span> ImageLayout<span style="color:#f92672">::</span>UNDEFINED, <span style="color:#e6db74">&#34;Should be the first use of this texture&#34;</span> );
+</span></span><span style="display:flex;"><span>        VkImageMemoryBarrier2 barrier <span style="color:#f92672">=</span> <span style="color:#a6e22e">GetImageBarrier</span>( index, TaskType<span style="color:#f92672">::</span>NONE, ResourceState<span style="color:#f92672">::</span>UNUSED,
+</span></span><span style="display:flex;"><span>            trackInfo.prevResType, taskType, texInfo.state, resType, trackInfo.currLayout, desiredLayout );
+</span></span><span style="display:flex;"><span>        pTask<span style="color:#f92672">-&gt;</span>imageBarriers.<span style="color:#a6e22e">push_back</span>( barrier );
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    ...
+</span></span></code></pre></div><p>For full details, please see the code. The main thing here in all of these functions is checking to see if the resource is switching to reads or writes, then writing code (if needed) for all of the cases: R-&gt;R, R-&gt;W, W-&gt;W, W-&gt;R. I make the assumption that back to back writes need to have a barrier inbetween them, though this would be suboptimal if the shaders actually wrote to different regions of the resource. If the resource is a render target attachment however,</p>
+<h4 id="handling-clears">Handling Clears<a hidden class="anchor" aria-hidden="true" href="#handling-clears">#</a></h4>
+<p>Each task holds a list of buffer and image barriers to execute before running the actual core function of the task. The compute and graphics tasks also hold lists of any resource clears that need to be performed before the core function is run. Clears can only happen on the first use of the resource, so we don&rsquo;t need barriers before the clear happens. Well, that is true for buffers, but sadly not for images. To do a generic <code>vkCmdClearColorImage</code> on an image, we need make sure it has <code>ImageLayout::TRANSFER_DST</code>. So have one extra list of barriers for images, that can run before clear operations. This only applies to non-attachment images for the record. Attachments that want to be cleared use <code>VK_ATTACHMENT_LOAD_OP_CLEAR</code> instead of <code>vkCmdClearColorImage</code>. We also still need barriers after the clear happens, to wait for it to be done before reading or writing to those resources.</p>
+<h4 id="render-passes">Render Passes<a hidden class="anchor" aria-hidden="true" href="#render-passes">#</a></h4>
+<p>For graphics tasks, this is also the step that needs to create the render pass, or gather the information needed for the <code>VkRenderingAttachmentInfo</code> if you are using dynamic rendering. This is very straight forward, since we have a list of all the attachments already, and the <code>storeOp</code> and <code>loadOp</code> can easily be deduced. I actually wrote the first iteration of this task graph using render pass objects, and later switched to dynamic rendering. I found that it was basically the same amount of bookkeeping, so there is little impact either way you choose.</p>
+<h4 id="final-notes">Final Notes<a hidden class="anchor" aria-hidden="true" href="#final-notes">#</a></h4>
+<p>There are a couple final things to note here. Ideally we would think about batching barriers together and reordering tasks to minimize the number of barriers and batches. That would give better performance, but again is one of the things I intentionally ignored for this engine. To be honest, it&rsquo;s also unclear to me how to reorder tasks to minimize both barriers and maximize memory aliasing at the same time. The second thing to note here, is that the barriers need the <code>VkImage/VkBuffer</code> handles. Since we have external resources that don&rsquo;t supply that handle until execution time, the resource index is instead stored in the barrier handle:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span>VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+</span></span><span style="display:flex;"><span>barrier.image         <span style="color:#f92672">=</span> <span style="color:#66d9ef">reinterpret_cast</span><span style="color:#f92672">&lt;</span>VkImage<span style="color:#f92672">&gt;</span>( imageIndex );
+</span></span></code></pre></div><p>Then during execution time, we use that index to lookup the now-valid resource handle and set it appropriately.</p>
+<h2 id="execution">Execution<a hidden class="anchor" aria-hidden="true" href="#execution">#</a></h2>
+<p>At this point, the task graph is ready to be used during each frame&rsquo;s rendering. The steps are pretty straight forward:</p>
+<ol>
+<li>Call every external resource&rsquo;s function to update the task graph&rsquo;s copy of those resource handles</li>
+<li>Loop over each task in order and do the following:</li>
+<li>Submit any pre-clear image barriers, if the task has any</li>
+<li>Perform any buffer/image clears, if the task has any</li>
+<li>Submit the regular (not pre-clear) buffer and image barriers</li>
+<li>Call the user function in the case of compute and graphics tasks, or perform the transfers for transfer tasks</li>
+</ol>
+<p>The last piece to talk about, is how user task functions look. Here is an example from that frustum culling task shown at the beginning of the article:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">ComputeFrustumCullMeshes</span>( ComputeTask<span style="color:#f92672">*</span> task, TGExecuteData<span style="color:#f92672">*</span> data )
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    CommandBuffer<span style="color:#f92672">&amp;</span> cmdBuf <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>data<span style="color:#f92672">-&gt;</span>cmdBuf;
+</span></span><span style="display:flex;"><span>    cmdBuf.<span style="color:#a6e22e">BindPipeline</span>( PipelineManager<span style="color:#f92672">::</span><span style="color:#a6e22e">GetPipeline</span>( <span style="color:#e6db74">&#34;frustum_cull_meshes&#34;</span> ) );
+</span></span><span style="display:flex;"><span>    cmdBuf.<span style="color:#a6e22e">BindGlobalDescriptors</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">struct</span> ComputePushConstants
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        VkDeviceAddress cullDataBuffer;
+</span></span><span style="display:flex;"><span>        VkDeviceAddress outputCountBuffer;
+</span></span><span style="display:flex;"><span>        VkDeviceAddress indirectCmdOutputBuffer;
+</span></span><span style="display:flex;"><span>        u32 numMeshes;
+</span></span><span style="display:flex;"><span>        u32 _pad;
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>    ComputePushConstants push;
+</span></span><span style="display:flex;"><span>    push.cullDataBuffer          <span style="color:#f92672">=</span> data<span style="color:#f92672">-&gt;</span>frameData<span style="color:#f92672">-&gt;</span>meshCullData.<span style="color:#a6e22e">GetDeviceAddress</span>();
+</span></span><span style="display:flex;"><span>    push.outputCountBuffer       <span style="color:#f92672">=</span> task<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">GetOutputBuffer</span>( <span style="color:#ae81ff">0</span> ).<span style="color:#a6e22e">GetDeviceAddress</span>();
+</span></span><span style="display:flex;"><span>    push.indirectCmdOutputBuffer <span style="color:#f92672">=</span> task<span style="color:#f92672">-&gt;</span><span style="color:#a6e22e">GetOutputBuffer</span>( <span style="color:#ae81ff">1</span> ).<span style="color:#a6e22e">GetDeviceAddress</span>();
+</span></span><span style="display:flex;"><span>    push.numMeshes               <span style="color:#f92672">=</span> meshNum;
+</span></span><span style="display:flex;"><span>    cmdBuf.<span style="color:#a6e22e">PushConstants</span>( push );
+</span></span><span style="display:flex;"><span>    cmdBuf.<span style="color:#a6e22e">Dispatch_AutoSized</span>( meshNum, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span> );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>You can see that the function is able to get the task-specific resources directly, like <code>task-&gt;GetOutputBuffer( 0 )</code>. The number passed in is the order those resources were defined in the builder task, so the order of <code>AddBufferOutput</code> matters. You could do this differently to be less error-prone, but I thought a direct array lookup was nice and I haven&rsquo;t had any issues with it so far.</p>
+<h2 id="conclusion">Conclusion<a hidden class="anchor" aria-hidden="true" href="#conclusion">#</a></h2>
+<p>Hopefully that whirlwind tour made sense; there was a lot of code to show, describe, or skip entirely. There are a lot of ways this task graph system isn&rsquo;t ideal, and plenty of ways I would love to extend it more in the future. Even as it is right now though, I find it tremendously helpful. I hope it serves as an example for people getting started on smaller project task graphs, because you can write them without too much hastle in the end, and you should because they&rsquo;re so helpful with modern APIs.</p>
+<script src="https://giscus.app/client.js"
+	data-repo="LiamTyler/LiamTyler.github.io"
+	data-repo-id="MDEwOlJlcG9zaXRvcnkxNTQ2ODg2MzY="
+	data-category="Announcements"
+	data-category-id="DIC_kwDOCThcfM4Ceb9L"
+	data-mapping="pathname"
+	data-strict="0"
+	data-reactions-enabled="1"
+	data-emit-metadata="0"
+	data-input-position="bottom"
+	data-theme="preferred_color_scheme"
+	data-lang="en"
+	data-loading="lazy"
+	crossorigin="anonymous"
+	async>
+</script>
+
+
+<script src="/lightbox-plus-jquery.js"></script>
+<script>
+    lightbox.option({
+      'resizeDuration': 0,
+      'wrapAround': true,
+	  'imageFadeDuration': 0
+    })
+</script>
+
+
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2024 <a href="https://liamtyler.github.io/">Liam&#39;s Graphics Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>
