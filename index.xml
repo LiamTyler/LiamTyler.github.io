@@ -6,8 +6,16 @@
     <description>Recent content on Liam&#39;s Graphics Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 27 Jul 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 27 Sep 2024 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://liamtyler.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>About Me</title>
+      <link>https://liamtyler.github.io/about/</link>
+      <pubDate>Fri, 27 Sep 2024 00:00:00 +0000</pubDate>
+      <guid>https://liamtyler.github.io/about/</guid>
+      <description>My name is Liam Tyler. I really like graphics and C++ :) This blog is mostly going to be a collection of various graphics or coding things that I&amp;rsquo;ve found interesting, as well as learnings from working on my little hobby engine.
+In terms of experience: I started doing graphics personally and in school in 2017. I finished my masters in computer science with a focus in graphics in 2020. After graduation I joined Sledgehammer Games as a rendering engineer, where I worked on the Call of Duty games for a few years.</description>
+    </item>
     <item>
       <title>A Poor Man&#39;s Render Graph</title>
       <link>https://liamtyler.github.io/posts/task_graph/</link>
@@ -21,13 +29,6 @@
       <pubDate>Sun, 07 Jul 2024 00:00:00 +0000</pubDate>
       <guid>https://liamtyler.github.io/posts/asset_pipeline_part_1/</guid>
       <description>Asset pipelines are one of the pieces of game development I don&amp;rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &amp;ldquo;convert your assets into binary packages, compress them, and load them at runtime,&amp;rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&amp;rsquo;d argue it has the single biggest impact on development.</description>
-    </item>
-    <item>
-      <title>About Me</title>
-      <link>https://liamtyler.github.io/about/</link>
-      <pubDate>Fri, 05 Apr 2024 00:00:00 +0000</pubDate>
-      <guid>https://liamtyler.github.io/about/</guid>
-      <description>My name is Liam Tyler. I&amp;rsquo;ve been doing graphics for about 7 years. In terms of work, I was previously a senior rendering engineer at Deviation Games working on an unnanounced UE5 game. Before that, I was a rendering engineer at Sledgehammer Games working on the Call of Duty games. I&amp;rsquo;m currently taking a small sabbatical from work to focus on my health and to hike a bunch of mountains in Colorado this summer.</description>
     </item>
     <item>
       <title>Generating Height Maps From Normal Maps</title>
