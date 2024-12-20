@@ -2,16 +2,19 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://liamtyler.github.io/posts/meshlet_compression/</loc>
+    <lastmod>2024-12-20T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://liamtyler.github.io/</loc>
+    <lastmod>2024-12-20T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://liamtyler.github.io/posts/</loc>
+    <lastmod>2024-12-20T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://liamtyler.github.io/about/</loc>
     <lastmod>2024-09-27T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://liamtyler.github.io/</loc>
-    <lastmod>2024-09-27T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>https://liamtyler.github.io/posts/task_graph/</loc>
-    <lastmod>2024-07-27T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://liamtyler.github.io/posts/</loc>
     <lastmod>2024-07-27T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://liamtyler.github.io/posts/asset_pipeline_part_1/</loc>

@@ -6,8 +6,15 @@
     <description>Recent content on Liam&#39;s Graphics Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 27 Sep 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 20 Dec 2024 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://liamtyler.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Basic Meshlet Compression</title>
+      <link>https://liamtyler.github.io/posts/meshlet_compression/</link>
+      <pubDate>Fri, 20 Dec 2024 00:00:00 +0000</pubDate>
+      <guid>https://liamtyler.github.io/posts/meshlet_compression/</guid>
+      <description>Mesh shaders have become increasingly popular over the last few years with UE5&amp;rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&amp;rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&amp;rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods.</description>
+    </item>
     <item>
       <title>About Me</title>
       <link>https://liamtyler.github.io/about/</link>

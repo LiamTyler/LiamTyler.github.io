@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head>
+	
+      <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)']]                  
+    }
+  };
+</script>
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Basic Meshlet Compression | Liam&#39;s Graphics Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="Mesh shaders have become increasingly popular over the last few years with UE5&rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods.">
+<meta name="author" content="">
+<link rel="canonical" href="https://liamtyler.github.io/posts/meshlet_compression/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://liamtyler.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://liamtyler.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://liamtyler.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://liamtyler.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://liamtyler.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://liamtyler.github.io/posts/meshlet_compression/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1738KLC2DV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-1738KLC2DV', { 'anonymize_ip': false });
+}
+</script>
+<meta property="og:title" content="Basic Meshlet Compression" />
+<meta property="og:description" content="Mesh shaders have become increasingly popular over the last few years with UE5&rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://liamtyler.github.io/posts/meshlet_compression/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2024-12-20T00:00:00+00:00" />
+<meta property="article:modified_time" content="2024-12-20T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Basic Meshlet Compression"/>
+<meta name="twitter:description" content="Mesh shaders have become increasingly popular over the last few years with UE5&rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods."/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://liamtyler.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Basic Meshlet Compression",
+      "item": "https://liamtyler.github.io/posts/meshlet_compression/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Basic Meshlet Compression",
+  "name": "Basic Meshlet Compression",
+  "description": "Mesh shaders have become increasingly popular over the last few years with UE5\u0026rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren\u0026rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it\u0026rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods.",
+  "keywords": [
+    
+  ],
+  "articleBody": " Mesh shaders have become increasingly popular over the last few years with UE5’s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren’t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it’s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods.\nIn this post I want to walkthrough a basic first attempt at compressing meshlets, without glossing over many details. I hope by explaining my thought process along the way it will help provide a better understanding of the issues and implications that come with compressing this data. A quick disclaimer though– the methods I ended up choosing below certainly aren’t the only ways you can compress meshlet data. Even within the same methods there are a lot of opportunities to save more memory, and I’d like to explore those in the future. Hopefully this at least provides a reasonable starting point, though.\nTriangle data One advantage of meshlets is that they have smaller index buffer sizes right off the bat. This is because graphics apis require meshlets to have at most 256 vertices, which means you can use 8-bit indices (plus a single offset per-meshlet) instead of 16 or 32-bit indices like with traditional index buffers. If you decide to use a lower max vertex count, however, you could go lower than 8 bits too, if you tightly pack. In my case, I chose meshlets to have up to 64 vertices and 124 triangles, which would mean only 3 x 6 = 18 bits are required per triangle. However, there are ways you can go lower without changing those max limits.\nOne option would be to use generalized triangle strips (GTS). This is something that AMD recently presented at VMV 2024 and wrote a blog post about. It’s also what Nanite uses for their disk representation, before it’s transcoded to their runtime format. Decompressing this in the mesh shader, however, increases rendering times by 8-17% according to that blog, which didn’t sound super appealing. What does Nanite do? In the 2021 Nanite presentation they explain how they rotate the triangle indices such that the lowest index is first for each triangle, and then the second and third indices are just deltas from the first index. They use 7 + 5 + 5 = 17 bits per triangle, but since the meshlets I’m using are only up to 64 vertices, the first index could be 6 bits. That would give 16 bits per triangle, which seems nice, especially with the byte alignment. Thus, the question becomes, how do we guarantee the second and third indices are less than 5 bits away from the first index?\nI use meshoptimizer for generating my meshlets, so I wanted to do a quick check to see how many meshlets were already valid with the 6 + 5 + 5 format (after running meshopt_optimizeMeshlet on each meshlet). The results were:\n2,988 / 9,083 meshlets for the Stanford dragon 106,469 / 293,111 for the Stanford Lucy 2,504 / 3,528 for Sponza 422 / 1,173 for a random rock model on Polyhaven That’s only ~37% of the time if you total them up. I was curious if there was a way to reorder the verts and tris after meshoptimizer has already generated the meshlets to guarantee compactibility (5-bit deltas). I couldn’t think of any existing algorithms that would solve this type of problem off the top of my head and didn’t feel like digging up the Nanite code, so I just winged it. The main thought I had was when you add a vertex, you probably want to process all of its neighboring tris as soon as possible since they will also reference that same vertex. So, I wrote a small algorithm that did just that. It’s basically a BFS traversal starting from the most connected vertex, with the nodes searched in order of how many neighbors they have. You can find the full code here, but the gist of it is:\nCreate a list of adjacent triangles for each vertex Sort the vertices in descending order, based on their adjacent triangle count Loop over all the vertices, and for each unprocessed vertex: Add the vertex to the new buffer, and find which of its adjacent triangles haven’t been processed yet Sort those triangles in ascending order, based on the sum of their vertex adjacency counts Add those triangles into a queue Until the triangle queue is empty, repeat steps 4-6 on each vertex of each triangle in the queue. So out of the 306,895 meshlets we tried early, how many of them are compactible now? As it turns out, all 306,895! We went from ~37% to a perfect 100%! I was extremely surprised by that, but it’s very convenient. It doesn’t guarantee compactibility (a triangle fan with 32+ triangles would fail), so we still need to have a fallback. For every meshlet that is still incompactible after doing this algorithm, I split them by simply adding triangles one at a time to an empty meshlet until it becomes incompactible. Then, repeat with a new empty meshlet until all the original meshlet’s triangles have been processed. The bookkeeping is the annoying part here, but it’s not too bad. These meshlets will be suboptimal in terms of size, but they happen so infrequently in my tests so far, that it just doesn’t matter.\nThe runtime shader is extremely simple: each tri is just a single uint16_t load, followed by a couple of bit operations to extract the 5-bit deltas. While it would be nice to save more space, at least we saved 33% of the triangle memory so far with no runtime cost.\nGeneral Notes on Vertex Compression Constraints They say the more you can constrain a problem, the more you can optimize it. That’s especially true when compressing vertex data. Ideally you are on a project that has specific modeling conventions or limitations you could take advantage of. For example, maybe you know your world only requires 5mm precision. Or maybe the artists are willing to tweak models that have noticeable quantization artifacts if it only happens occasionally. In my case though, I’m just writing a general renderer that can accept nearly any type of random model I download off the internet. This means there aren’t as many constraints, which limits how much I can knowingly compress things.\nDecompression Speed vs Compression Ratios Another thing to keep in mind is the decompression speed, particularly if it’s happening every frame in the shader. As you saw earlier with me choosing simple triangle deltas over GTS, I tend to prioritize runtime performance over compression rates. You’ll see this pop up in smaller ways below too, like preferring quantization lengths that give byte alignment, consistent vertex sizes within a single mesh, etc.\nMeshlet Representation The last thing to keep in mind, is that your meshlet representation can affect your compression options. The two main ways of using meshlets are:\nKeep the entire mesh’s vertex buffer as-is, and each meshlet stores the indices into the full vertex buffer. This adds a level of indirection to fetch vertices, but no vertices are duplicated. Each meshlet has it’s own vertex buffer. This removes the indirection in method 1 above, but also now you must duplicate any vertex that is shared on a meshlet boundary, generally increasing the total vertex buffer size by about 30-40%. Each method has pros and cons, but I decided to go with method #2 for the following reasons:\nI found the extra indirection had a significant performance impact, and I wanted to avoid that. Storing the vertex indices themselves costs memory, usually 16-32 bits per vertex. This means it’s more beneficial when your vertices are very large, but that is not the case for me currently, so it wouldn’t save much memory. It’s a lot easier to use different compression methods for each meshlet within a single mesh with method #2, based on how compressible that individual meshlet happens to be. You must take care with the shared boundaries between meshlets, but you could potentially save quite a bit of space with this. This is something I’d like to explore more in the future, and isn’t really discussed below in detail. Positions For compressing or quantizing positions, the most important thing is to avoid cracks. This can happen when two different vertices share the same position originally, but are quantized differently from each other. Upon dequantization, they no longer share the same position and there is a crack or gap in the mesh (scroll down in AMD’s blog post for a great illustration of this).\nThe potential strategy you take also heavily depends on how strict your position alignment requirements are. In my engine, a model is composed of one or more meshes (1 material per mesh), and each mesh is broken up into one or more meshlets. I decided that meshlets and meshes within a model need to have their vertices align, but vertices between different models do not. This has consequences, however: if you have a room where the floor and walls are entirely separate models, they are not guaranteed to align, and you might have to shift their placements to hide this.\nOne common approach to compressing positions is to store each vertex’s relative position within the model’s AABB as a 3 x 16-bit unorm. Then in the shader you load the AABB to reconstruct the position. This is still an option with meshlets, but are there any other options that meshlets lend themselves well to? As it turns out, yes!\nIn the AMD blog post mentioned earlier, they use a method with two quantization grids: a meshlet grid (local), and a mesh grid (global). Think of it like this: each meshlet stores an offset, telling you which global grid cell that meshlet sits in. Then, your local meshlet position can tell you where exactly inside that grid cell your vertex is. They ensure that every meshlet is entirely contained within a single grid cell by finding the largest meshlet AABB extents (in each dimension), and using that as the size of a single grid cell. What are some of the pros with this method?\nIt’s crack-free. Fast to decode (one add, followed by a madd). Can have increased overall precision, compared to the regular AABB method. This depends on the ratio of the largest meshlet extents to the model AABB. For example, if you use 16 bits for the meshlet-local grid, and the model’s AABB is 8x larger than the largest meshlet extents, you effectively have 16 + log2(8) = 19 bits of precision. How about the cons?\nYou need to store a uvec3 per meshlet now, as well as the per-model dequantization (vec3). Your precision increase isn’t very predictable or guaranteed. For example, the Sponza scene I used earlier has everything in a single model, which contains 103 separate meshes. You would expect the largest meshlet to be many times smaller than the entirety of Sponza. In reality though, the floor has gigantic triangles, so the total effective precision is actually still just 16 bits. The higher your meshlet max vert/tri counts are, the less likely you are to have increased precision Right now, I’m just using the method as-is, but I think there is a lot of opportunity here to do more. For example, if you had effectively 16 + 4 = 20 bits of precision, but you were already fine with 16, then you could just store 3 x 12 bits for each position instead. Or instead of hard coding 16 bits, you could calculate how many bits you need to get your desired precision level in the world (this is doable with the original AABB method too). Unfortunately, most of the models I’ve tested so far usually have less than 17 bits of effective precision, but I think there’s room to experiment in the future.\nNormals When I think of normal compression, I immediately think of octahedral encoding. It’s fast to encode, very fast to decode, and it has low error. I highly recommend checking out this paper which explains octahedral encoding (among others) and compares the average and maximum error between different encoding methods. That paper also explains how there is a “precise” variant of octahedral encoding that further reduces its error by accounting for the rounding bias during quantization. The decoding is the same too, so it’s super easy to integrate. It’s not something I’ve seen anyone else use or talk about, but I think it’s pretty neat. If you have an offline model conversion process, there is no reason not to use the precise version.\nOctahedral encoding gives you 2 floats between [-1, 1], so the question then becomes “how many bits should we use to quantize them?” I’ve seen some people use 2 x 8 = 16 bits, but is that enough to avoid seeing any artifacts? Probably! But it bothers me that nobody seems to talk about the error, so we’re going to talk about it here. Fortunately for us, IQ made an awesome shadertoy demo that visualizes uncompressed normals vs octahedral normals, at various bit levels. I tweaked the demo just to let you control the bit level with the up/down arrow keys, and holding left mouse button lets you see the precise variant, and you can find it here. Note: going fullscreen really helps see the differences. Personally for me, the quantization is pretty noticeable at 16 bits, slightly noticeable at 18 bits, and not at all at 20 bits.\nTo be fair, I think the demo overestimates how bad 16-bit normals are. This demo is quantizing and dequantizing each pixel individually, whereas normally you are dequantizing per-vertex, and then that result is smoothly interpolated for the fragment shader. This interpolation wouldn’t lower the average or max error, but I think the chances of seeing banding like in the demo would be lower. Of course, using actual albedo/spec textures would likely make it more unnoticeable too. Games like Doom Eternal have shipped with 16-bit octahedral no problem as well. I just don’t have enough content to actually do a good comparison myself to prove it’s unnoticeable, so I’m currently using 20-bit to be safe.\nNote: one extra annoying thing about using 20-bit normals, is that you can’t just load a uint since sometimes the normal will straddle 2 of them. You can see code I use to load them here, which I got directly from this great blog. I know at least on RDNA 3, memory loads that are larger than 4 bytes still only require 4 byte alignment, so you could just load the uint64_t directly and then do the bitshift. I don’t know if that’s true on other hardware however, so I did the 2 uint load method like the blog.\nYou probably noticed this compression has nothing to do with meshlets. That is true, and I do feel like there are probably opportunities here that I would love to explore in the future. Since normals in meshlets will often be directionally coherent, I did try saving the average normal per-meshlet, and then just using per-vertex offsets in octahedral space. That would be extremely fast (just 1 extra add per vertex) to decode. The problem is that normals are only spatially coherent on the 2D octahedral plane when normal.z \u003e 0, and not at all if normal.z \u003c 0. It did actually save a little bit of space on average, though it varied a lot depending on the model. I still think there is an opportunity to improve with octahedrals, but also other formats might be more promising in terms of this delta/offset compression, like spherical.\nTangents I don’t have as much to say here, as currently I just went with octahedral tangents as well. It’s a bit harder to visualize how many bits you need for tangents, but I think you don’t need as many as the normals might. This is because the tangent direction has a stronger influence for normal map samples that are super angled, which happens less often. Currently I decided just to use 18 bits for the tangent, plus an extra bit for the bitangent sign. I think you could definitely get away with less, I just haven’t spent the time to quantify or visualize the error yet.\nAlternatives While I haven’t had time to explore other options yet, there are some methods and tricks worth mentioning. First, you can often avoid storing the bitangent sign per-vertex. It very often will align the same way other vertices it’s nearby, so you could split your meshes to have uniform bitangent signs and store it per-mesh, or you could store it per-meshlet. One of the blogs mentioned earlier stores 2 bits per-meshlet to signify one of three modes: the entire meshlet has a positive bitangent sign, the entire meshlet has a negative bitangent sign, or the sign is stored per-vertex (and actually reduces the tangent precision by 1, to keep consistent bit length).\nNext, an entirely different possible representation is QTangents. They’re talked about in this blog, and can also be found by googling for ‘QTangents Cryengine’. These store the entire tangent space in a quaternion and decode pretty quickly. I haven’t seen anyone analyze the average or max error with this approach though, so I’m not sure how far you can quantize it or how it compares to octahedral.\nFinally, another representation is storing the tangent’s angle away from a cononical tangent. This method has been used in several games, like God of War and Doom Eternal, and is a method I’m very interested in exploring as well. This blog explains the method in more detail, and also explains how you can avoid the two trig functions by applying the same principle as octahedral encoding. This seems like a great method, and hopefully I get around to trying it and writing some code to quantify the error.\nUVs Compressing texture coordinates is a bit trickier in my opinion, and I couldn’t find many resources of what other people do. In my experience though, most models have their UVs entirely in [0, 1], so it makes sense to try to take advantage of that somehow. In the end I decided to support two different modes: one for unorm UV meshes, and another for everything else.\nIf the entire mesh has its UVs in [0, 1] I decided to use 2 x 12-bit unorms to store the UVs. I store this property as a flag in the meshlet metadata, and I branch in the shader on it. Since the entire meshlet (and mesh) has the same property, there is no thread divergence, and it’s cheap to check. Why use 12 bits?\nI figure you probably won’t ever see any artifacts if no UVs increment in steps larger than what a texel could be. Since basically all textures are \u003c= 4K right now, 12 bits is the minimum needed for this, since it gives a step size of 2^-12 = 1/4096. It’s always convenient when things are byte-aligned, so each UV being exactly 3 bytes is nice :) You could probably quantize this below 12 bits without noticing a thing on most models, but I think 12 bits is likely a safe bet, while still giving 62.5% compression.\nFor meshes that do not have unorm UVs, I just use 2 x 16-bit floats. They can represent numbers between ~[-64K, 64K], admittingly with some large gaps between the numbers, and they’re nicely byte aligned once again. It’s probably often overkill, but it works well for every model I’ve seen so far, and again seems like a decent starting point for less common models.\nThere’s an argument to be made for supporting trying to support both modes within a single mesh. I.e: if there was a large mesh with 99% of its meshlets having unorm UVs, then you’re missing out on a lot of savings. You could implement this, but there are some extra things to consider:\nI don’t suspect there are many meshes like this. Within a single mesh (remember, 1 material per mesh), you usually have a set of textures that are either unique (0 to 1) or tiling, but not both. I could be wrong, but I would guess you don’t see this often enough to make a big difference. If you still want shared vertices to have the exact same UVs after decompression (I think you could often get away with not caring about this), then you would have to do something like modify the UV pre-compression to align with both quantization methods. For example, the number 3001/4096 is perfectly representable with 12-bit unorms, but not with 16-bit floats. The spacing for 16-bit floats between 0.5 and 1 is 1/2048, so you would want to tweak the UV to either be 3000/4096 or 3002/4096 to be representable in both formats. You would need to save vertex offsets per-meshlet just for the UVs. Right now in my engine, every vertex within a single mesh has the same size, which means I only need 1 vertex offset per-meshlet to index any of the attributes. If the size of a vertex can vary per meshlet, you would have to do extra bookkeeping to track that. Results Memory These are the converted model asset filesizes from my engine, in MB. It also includes a bit of serialization data, and meshlet culling data.\nModel Initial Packed Tris Packed Tris + Verts Lucy 527.50 500.74 227.93 Dragon 16.35 15.52 7.07 Sponza 11.16 10.91 3.82 Overlapping Spheres 0.22 0.22 0.07 Rock 3.82 3.71 1.29 The triangle data wasn’t a huge savings, since it wasn’t a massive amount of memory in the first place (we went from 3 bytes per triangle to 2 bytes per triangle). It’s still nice to save, though. Also, the vertices for the Dragon and Lucy both only contain position and normal data, so their relative savings are a bit lower than the others with tangents and UVs.\nSpeed These are the runtime numbers (in milliseconds) of the various scenes. All timings are from my desktop that has an AMD 7900XT gpu. They’re acquired with vulkan timestamps, while the shader and memory clocks are set to constant frequencies in the Radeon Developer Panel.\nModel Initial Packed Tris Packed Tris + Verts Lucy 1.81 1.80 1.81 Dragon 0.076 0.076 0.076 Sponza 0.197 0.196 0.197 Overlapping Spheres 13.29 12.83 12.89 Rock 0.36 0.36 0.35 As you can see, we get equal or better performance in most scenes. The ‘Overlapping Spheres’ is a scene with the same sphere model placed 30,000 times at the position, just to give a scene where the cost is mostly from the mesh shader.\nFinal Thoughts In the end, we saved an average of 63% memory per model, with the same or slightly better runtime performance. It’s not too shabby for an overly cautious first attempt, but you can also see now how there is a lot of room for improvement. Still though, hopefully this article either introduces you to a few compression methods or gives you a few ideas of how to improve your own pipeline. Leave a comment if you’d like; any and all feedback is welcome!\n",
+  "wordCount" : "3915",
+  "inLanguage": "en",
+  "datePublished": "2024-12-20T00:00:00Z",
+  "dateModified": "2024-12-20T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://liamtyler.github.io/posts/meshlet_compression/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Liam's Graphics Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://liamtyler.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://liamtyler.github.io/" accesskey="h" title="Liam&#39;s Graphics Blog (Alt + H)">Liam&#39;s Graphics Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://liamtyler.github.io/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://liamtyler.github.io/about/" title="About">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://liamtyler.github.io/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      Basic Meshlet Compression
+    </h1>
+    <div class="post-meta"><span title='2024-12-20 00:00:00 +0000 UTC'>December 20, 2024</span>
+
+</div>
+  </header> 
+  <div class="post-content">
+
+  <link href="/lightbox.css" rel="stylesheet" />
+  <link href="/custom_css.css" rel="stylesheet" />
+
+
+<p>Mesh shaders have become increasingly popular over the last few years with UE5&rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods.</p>
+<p>In this post I want to walkthrough a basic first attempt at compressing meshlets, without glossing over many details. I hope by explaining my thought process along the way it will help provide a better understanding of the issues and implications that come with compressing this data. A quick disclaimer though&ndash; the methods I ended up choosing below certainly aren&rsquo;t the only ways you can compress meshlet data. Even within the same methods there are a lot of opportunities to save more memory, and I&rsquo;d like to explore those in the future. Hopefully this at least provides a reasonable starting point, though.</p>
+<h2 id="triangle-data">Triangle data<a hidden class="anchor" aria-hidden="true" href="#triangle-data">#</a></h2>
+<p>One advantage of meshlets is that they have smaller index buffer sizes right off the bat. This is because graphics apis require meshlets to have at most 256 vertices, which means you can use 8-bit indices (plus a single offset per-meshlet) instead of 16 or 32-bit indices like with traditional index buffers. If you decide to use a lower max vertex count, however, you could go lower than 8 bits too, if you tightly pack. In my case, I chose meshlets to have up to 64 vertices and 124 triangles, which would mean only 3 x 6 = 18 bits are required per triangle. However, there are ways you can go lower without changing those max limits.</p>
+<p>One option would be to use generalized triangle strips (GTS). This is something that AMD recently presented at VMV 2024 and wrote a <a href="https://gpuopen.com/learn/mesh_shaders/mesh_shaders-meshlet_compression/">blog post about</a>. It&rsquo;s also what Nanite uses for their disk representation, before it&rsquo;s transcoded to their runtime format. Decompressing this in the mesh shader, however, increases rendering times by 8-17% according to that blog, which didn&rsquo;t sound super appealing. What does Nanite do? In the <a href="https://youtu.be/eviSykqSUUw?si=9I7DewyxWou-YCyb&amp;t=3576">2021 Nanite presentation</a> they explain how they rotate the triangle indices such that the lowest index is first for each triangle, and then the second and third indices are just deltas from the first index. They use 7 + 5 + 5 = 17 bits per triangle, but since the meshlets I&rsquo;m using are only up to 64 vertices, the first index could be 6 bits. That would give 16 bits per triangle, which seems nice, especially with the byte alignment. Thus, the question becomes, how do we guarantee the second and third indices are less than 5 bits away from the first index?</p>
+<p>I use <a href="https://github.com/zeux/meshoptimizer">meshoptimizer</a> for generating my meshlets, so I wanted to do a quick check to see how many meshlets were already valid with the 6 + 5 + 5 format (after running <code>meshopt_optimizeMeshlet</code> on each meshlet). The results were:</p>
+<ul>
+<li>2,988 / 9,083 meshlets for the <a href="https://graphics.stanford.edu/data/3Dscanrep/">Stanford dragon</a></li>
+<li>106,469 / 293,111 for the <a href="https://graphics.stanford.edu/data/3Dscanrep/">Stanford Lucy</a></li>
+<li>2,504 / 3,528 for <a href="https://github.com/KhronosGroup/glTF-Sample-Models/tree/main/2.0/Sponza">Sponza</a></li>
+<li>422 / 1,173 for a <a href="https://polyhaven.com/a/namaqualand_boulder_06">random rock model</a> on Polyhaven</li>
+</ul>
+<p>That&rsquo;s only ~37% of the time if you total them up. I was curious if there was a way to reorder the verts and tris after meshoptimizer has already generated the meshlets to guarantee compactibility (5-bit deltas). I couldn&rsquo;t think of any existing algorithms that would solve this type of problem off the top of my head and didn&rsquo;t feel like digging up the Nanite code, so I just winged it. The main thought I had was when you add a vertex, you probably want to process all of its neighboring tris as soon as possible since they will also reference that same vertex. So, I wrote a small algorithm that did just that. It&rsquo;s basically a BFS traversal starting from the most connected vertex, with the nodes searched in order of how many neighbors they have. You can find the full code <a href="https://github.com/LiamTyler/Progression/tree/74ce6e17f025913978cc89e3c188772dd165a4ba/code/asset/types/model.cpp#L32">here</a>, but the gist of it is:</p>
+<ol>
+<li>Create a list of adjacent triangles for each vertex</li>
+<li>Sort the vertices in descending order, based on their adjacent triangle count</li>
+<li>Loop over all the vertices, and for each unprocessed vertex:</li>
+<li>Add the vertex to the new buffer, and find which of its adjacent triangles haven&rsquo;t been processed yet</li>
+<li>Sort those triangles in ascending order, based on the sum of their vertex adjacency counts</li>
+<li>Add those triangles into a queue</li>
+<li>Until the triangle queue is empty, repeat steps 4-6 on each vertex of each triangle in the queue.</li>
+</ol>
+<p>So out of the 306,895 meshlets we tried early, how many of them are compactible now? As it turns out, all 306,895! We went from ~37% to a perfect 100%! I was extremely surprised by that, but it&rsquo;s very convenient. It doesn&rsquo;t guarantee compactibility (a triangle fan with 32+ triangles would fail), so we still need to have a fallback. For every meshlet that is still incompactible after doing this algorithm, I split them by simply adding triangles one at a time to an empty meshlet until it becomes incompactible. Then, repeat with a new empty meshlet until all the original meshlet&rsquo;s triangles have been processed. The bookkeeping is the annoying part here, but it&rsquo;s not too bad. These meshlets will be suboptimal in terms of size, but they happen so infrequently in my tests so far, that it just doesn&rsquo;t matter.</p>
+<p>The runtime shader is extremely simple: each tri is just a single uint16_t load, followed by a couple of bit operations to extract the 5-bit deltas. While it would be nice to save more space, at least we saved 33% of the triangle memory so far with no runtime cost.</p>
+<h2 id="general-notes-on-vertex-compression">General Notes on Vertex Compression<a hidden class="anchor" aria-hidden="true" href="#general-notes-on-vertex-compression">#</a></h2>
+<h3 id="constraints">Constraints<a hidden class="anchor" aria-hidden="true" href="#constraints">#</a></h3>
+<p>They say the more you can constrain a problem, the more you can optimize it. That&rsquo;s especially true when compressing vertex data. Ideally you are on a project that has specific modeling conventions or limitations you could take advantage of. For example, maybe you know your world only requires 5mm precision. Or maybe the artists are willing to tweak models that have noticeable quantization artifacts if it only happens occasionally. In my case though, I&rsquo;m just writing a general renderer that can accept nearly any type of random model I download off the internet. This means there aren&rsquo;t as many constraints, which limits how much I can knowingly compress things.</p>
+<h3 id="decompression-speed-vs-compression-ratios">Decompression Speed vs Compression Ratios<a hidden class="anchor" aria-hidden="true" href="#decompression-speed-vs-compression-ratios">#</a></h3>
+<p>Another thing to keep in mind is the decompression speed, particularly if it&rsquo;s happening every frame in the shader. As you saw earlier with me choosing simple triangle deltas over GTS, I tend to prioritize runtime performance over compression rates. You&rsquo;ll see this pop up in smaller ways below too, like preferring quantization lengths that give byte alignment, consistent vertex sizes within a single mesh, etc.</p>
+<h3 id="meshlet-representation">Meshlet Representation<a hidden class="anchor" aria-hidden="true" href="#meshlet-representation">#</a></h3>
+<p>The last thing to keep in mind, is that your meshlet representation can affect your compression options. The two main ways of using meshlets are:</p>
+<ol>
+<li>Keep the entire mesh&rsquo;s vertex buffer as-is, and each meshlet stores the indices into the full vertex buffer. This adds a level of indirection to fetch vertices, but no vertices are duplicated.</li>
+<li>Each meshlet has it&rsquo;s own vertex buffer. This removes the indirection in method 1 above, but also now you must duplicate any vertex that is shared on a meshlet boundary, generally increasing the total vertex buffer size by about 30-40%.</li>
+</ol>
+<p>Each method has pros and cons, but I decided to go with method #2 for the following reasons:</p>
+<ol>
+<li>I found the extra indirection had a significant performance impact, and I wanted to avoid that.</li>
+<li>Storing the vertex indices themselves costs memory, usually 16-32 bits per vertex. This means it&rsquo;s more beneficial when your vertices are very large, but that is not the case for me currently, so it wouldn&rsquo;t save much memory.</li>
+<li>It&rsquo;s a lot easier to use different compression methods for each meshlet within a single mesh with method #2, based on how compressible that individual meshlet happens to be. You must take care with the shared boundaries between meshlets, but you could potentially save quite a bit of space with this. This is something I&rsquo;d like to explore more in the future, and isn&rsquo;t really discussed below in detail.</li>
+</ol>
+<h2 id="positions">Positions<a hidden class="anchor" aria-hidden="true" href="#positions">#</a></h2>
+<p>For compressing or quantizing positions, the most important thing is to avoid cracks. This can happen when two different vertices share the same position originally, but are quantized differently from each other. Upon dequantization, they no longer share the same position and there is a crack or gap in the mesh (scroll down in <a href="https://gpuopen.com/learn/mesh_shaders/mesh_shaders-meshlet_compression/#attribute-compression">AMD&rsquo;s blog post</a>  for a great illustration of this).</p>
+<p>The potential strategy you take also heavily depends on how strict your position alignment requirements are. In my engine, a model is composed of one or more meshes (1 material per mesh), and each mesh is broken up into one or more meshlets. I decided that meshlets and meshes within a model need to have their vertices align, but vertices between different models do not. This has consequences, however: if you have a room where the floor and walls are entirely separate models, they are not guaranteed to align, and you might have to shift their placements to hide this.</p>
+<p>One common approach to compressing positions is to store each vertex&rsquo;s relative position within the model&rsquo;s AABB as a 3 x 16-bit unorm. Then in the shader you load the AABB to reconstruct the position. This is still an option with meshlets, but are there any other options that meshlets lend themselves well to? As it turns out, yes!</p>
+<p>In the AMD blog post mentioned earlier, they use a method with two quantization grids: a meshlet grid (local), and a mesh grid (global). Think of it like this: each meshlet stores an offset, telling you which global grid cell that meshlet sits in. Then, your local meshlet position can tell you where exactly inside that grid cell your vertex is. They ensure that every meshlet is entirely contained within a single grid cell by finding the largest meshlet AABB extents (in each dimension), and using that as the size of a single grid cell. What are some of the pros with this method?</p>
+<ol>
+<li>It&rsquo;s crack-free.</li>
+<li>Fast to decode (one add, followed by a madd).</li>
+<li>Can have increased overall precision, compared to the regular AABB method. This depends on the ratio of the largest meshlet extents to the model AABB. For example, if you use 16 bits for the meshlet-local grid, and the model&rsquo;s AABB is 8x larger than the largest meshlet extents, you effectively have 16 + log2(8) = 19 bits of precision.</li>
+</ol>
+<p>How about the cons?</p>
+<ol>
+<li>You need to store a uvec3 per meshlet now, as well as the per-model dequantization (vec3).</li>
+<li>Your precision increase isn&rsquo;t very predictable or guaranteed. For example, the Sponza scene I used earlier has everything in a single model, which contains 103 separate meshes. You would expect the largest meshlet to be many times smaller than the entirety of Sponza. In reality though, the floor has gigantic triangles, so the total effective precision is actually still just 16 bits.</li>
+<li>The higher your meshlet max vert/tri counts are, the less likely you are to have increased precision</li>
+</ol>
+<p>Right now, I&rsquo;m just using the method as-is, but I think there is a lot of opportunity here to do more. For example, if you had effectively 16 + 4 = 20 bits of precision, but you were already fine with 16, then you could just store 3 x 12 bits for each position instead. Or instead of hard coding 16 bits, you could calculate how many bits you need to get your desired precision level in the world (this is doable with the original AABB method too). Unfortunately, most of the models I&rsquo;ve tested so far usually have less than 17 bits of effective precision, but I think there&rsquo;s room to experiment in the future.</p>
+<h2 id="normals">Normals<a hidden class="anchor" aria-hidden="true" href="#normals">#</a></h2>
+<p>When I think of normal compression, I immediately think of octahedral encoding. It&rsquo;s fast to encode, very fast to decode, and it has low error. I highly recommend checking out <a href="https://jcgt.org/published/0003/02/01/">this paper</a> which explains octahedral encoding (among others) and compares the average and maximum error between different encoding methods. That paper also explains how there is a &ldquo;precise&rdquo; variant of octahedral encoding that further reduces its error by accounting for the rounding bias during quantization. The decoding is the same too, so it&rsquo;s super easy to integrate. It&rsquo;s not something I&rsquo;ve seen anyone else use or talk about, but I think it&rsquo;s pretty neat. If you have an offline model conversion process, there is no reason not to use the precise version.</p>
+<p>Octahedral encoding gives you 2 floats between [-1, 1], so the question then becomes &ldquo;how many bits should we use to quantize them?&rdquo; I&rsquo;ve seen <a href="https://themaister.net/blog/2024/01/17/modernizing-granites-mesh-rendering/">some people</a> use 2 x 8 = 16 bits, but is that enough to avoid seeing any artifacts? Probably! But it bothers me that nobody seems to talk about the error, so we&rsquo;re going to talk about it here. Fortunately for us, IQ made an awesome shadertoy demo that visualizes uncompressed normals vs octahedral normals, at various bit levels. I tweaked the demo just to let you control the bit level with the up/down arrow keys, and holding left mouse button lets you see the precise variant, and you can find it <a href="https://www.shadertoy.com/view/lcKBWK">here</a>. Note: going fullscreen really helps see the differences. Personally for me, the quantization is pretty noticeable at 16 bits, slightly noticeable at 18 bits, and not at all at 20 bits.</p>
+<p>To be fair, I think the demo overestimates how bad 16-bit normals are. This demo is quantizing and dequantizing each pixel individually, whereas normally you are dequantizing per-vertex, and then that result is smoothly interpolated for the fragment shader. This interpolation wouldn&rsquo;t lower the average or max error, but I think the chances of seeing banding like in the demo would be lower. Of course, using actual albedo/spec textures would likely make it more unnoticeable too. Games like Doom Eternal have shipped with 16-bit octahedral no problem as well. I just don&rsquo;t have enough content to actually do a good comparison myself to prove it&rsquo;s unnoticeable, so I&rsquo;m currently using 20-bit to be safe.</p>
+<p>Note: one extra annoying thing about using 20-bit normals, is that you can&rsquo;t just load a uint since sometimes the normal will straddle 2 of them. You can see code I use to load them <a href="https://github.com/LiamTyler/Progression/tree/74ce6e17f025913978cc89e3c188772dd165a4ba/assets/shaders/model.mesh#L82">here</a>, which I got directly from <a href="https://themaister.net/blog/2024/01/17/modernizing-granites-mesh-rendering/">this</a> great blog. I know at least on RDNA 3, memory loads that are larger than 4 bytes still only require 4 byte alignment, so you could just load the uint64_t directly and then do the bitshift. I don&rsquo;t know if that&rsquo;s true on other hardware however, so I did the 2 uint load method like the blog.</p>
+<p>You probably noticed this compression has nothing to do with meshlets. That is true, and I do feel like there are probably opportunities here that I would love to explore in the future. Since normals in meshlets will often be directionally coherent, I did try saving the average normal per-meshlet, and then just using per-vertex offsets in octahedral space. That would be extremely fast (just 1 extra add per vertex) to decode. The problem is that normals are only spatially coherent on the 2D octahedral plane when normal.z &gt; 0, and not at all if normal.z &lt; 0. It did actually save a little bit of space on average, though it varied a lot depending on the model. I still think there is an opportunity to improve with octahedrals, but also other formats might be more promising in terms of this delta/offset compression, like spherical.</p>
+<h2 id="tangents">Tangents<a hidden class="anchor" aria-hidden="true" href="#tangents">#</a></h2>
+<p>I don&rsquo;t have as much to say here, as currently I just went with octahedral tangents as well. It&rsquo;s a bit harder to visualize how many bits you need for tangents, but I think you don&rsquo;t need as many as the normals might. This is because the tangent direction has a stronger influence for normal map samples that are super angled, which happens less often. Currently I decided just to use 18 bits for the tangent, plus an extra bit for the bitangent sign. I think you could definitely get away with less, I just haven&rsquo;t spent the time to quantify or visualize the error yet.</p>
+<h4 id="alternatives">Alternatives<a hidden class="anchor" aria-hidden="true" href="#alternatives">#</a></h4>
+<p>While I haven&rsquo;t had time to explore other options yet, there are some methods and tricks worth mentioning. First, you can often avoid storing the bitangent sign per-vertex. It very often will align the same way other vertices it&rsquo;s nearby, so you could split your meshes to have uniform bitangent signs and store it per-mesh, or you could store it per-meshlet. One of the <a href="https://themaister.net/blog/2024/01/17/modernizing-granites-mesh-rendering/">blogs</a> mentioned earlier stores 2 bits per-meshlet to signify one of three modes: the entire meshlet has a positive bitangent sign, the entire meshlet has a negative bitangent sign, or the sign is stored per-vertex (and actually reduces the tangent precision by 1, to keep consistent bit length).</p>
+<p>Next, an entirely different possible representation is QTangents. They&rsquo;re talked about in <a href="https://www.yosoygames.com.ar/wp/2018/03/vertex-formats-part-1-compression/">this blog</a>, and can also be found by googling for &lsquo;QTangents Cryengine&rsquo;. These store the entire tangent space in a quaternion and decode pretty quickly. I haven&rsquo;t seen anyone analyze the average or max error with this approach though, so I&rsquo;m not sure how far you can quantize it or how it compares to octahedral.</p>
+<p>Finally, another representation is storing the tangent&rsquo;s angle away from a cononical tangent. This method has been used in several games, like God of War and Doom Eternal, and is a method I&rsquo;m very interested in exploring as well. <a href="https://www.jeremyong.com/graphics/2023/01/09/tangent-spaces-and-diamond-encoding/">This blog</a> explains the method in more detail, and also explains how you can avoid the two trig functions by applying the same principle as octahedral encoding. This seems like a great method, and hopefully I get around to trying it and writing some code to quantify the error.</p>
+<h2 id="uvs">UVs<a hidden class="anchor" aria-hidden="true" href="#uvs">#</a></h2>
+<p>Compressing texture coordinates is a bit trickier in my opinion, and I couldn&rsquo;t find many resources of what other people do. In my experience though, most models have their UVs entirely in [0, 1], so it makes sense to try to take advantage of that somehow. In the end I decided to support two different modes: one for unorm UV meshes, and another for everything else.</p>
+<p>If the entire mesh has its UVs in [0, 1] I decided to use 2 x 12-bit unorms to store the UVs. I store this property as a flag in the meshlet metadata, and I branch in the shader on it. Since the entire meshlet (and mesh) has the same property, there is no thread divergence, and it&rsquo;s cheap to check. Why use 12 bits?</p>
+<ol>
+<li>I figure you probably won&rsquo;t ever see any artifacts if no UVs increment in steps larger than what a texel could be. Since basically all textures are &lt;= 4K right now, 12 bits is the minimum needed for this, since it gives a step size of 2^-12 = 1/4096.</li>
+<li>It&rsquo;s always convenient when things are byte-aligned, so each UV being exactly 3 bytes is nice :)</li>
+</ol>
+<p>You could probably quantize this below 12 bits without noticing a thing on most models, but I think 12 bits is likely a safe bet, while still giving 62.5% compression.</p>
+<p>For meshes that do not have unorm UVs, I just use 2 x 16-bit floats. They can represent numbers between ~[-64K, 64K], admittingly with some large gaps between the numbers, and they&rsquo;re nicely byte aligned once again. It&rsquo;s probably often overkill, but it works well for every model I&rsquo;ve seen so far, and again seems like a decent starting point for less common models.</p>
+<p>There&rsquo;s an argument to be made for supporting trying to support both modes within a single mesh. I.e: if there was a large mesh with 99% of its meshlets having unorm UVs, then you&rsquo;re missing out on a lot of savings. You could implement this, but there are some extra things to consider:</p>
+<ol>
+<li>I don&rsquo;t suspect there are many meshes like this. Within a single mesh (remember, 1 material per mesh), you usually have a set of textures that are either unique (0 to 1) or tiling, but not both. I could be wrong, but I would guess you don&rsquo;t see this often enough to make a big difference.</li>
+<li>If you still want shared vertices to have the exact same UVs after decompression (I think you could often get away with not caring about this), then you would have to do something like modify the UV pre-compression to align with both quantization methods. For example, the number 3001/4096 is perfectly representable with 12-bit unorms, but not with 16-bit floats. The spacing for 16-bit floats between 0.5 and 1 is 1/2048, so you would want to tweak the UV to either be 3000/4096 or 3002/4096 to be representable in both formats.</li>
+<li>You would need to save vertex offsets per-meshlet just for the UVs. Right now in my engine, every vertex within a single mesh has the same size, which means I only need 1 vertex offset per-meshlet to index any of the attributes. If the size of a vertex can vary per meshlet, you would have to do extra bookkeeping to track that.</li>
+</ol>
+<h2 id="results">Results<a hidden class="anchor" aria-hidden="true" href="#results">#</a></h2>
+<h3 id="memory">Memory<a hidden class="anchor" aria-hidden="true" href="#memory">#</a></h3>
+<p>These are the converted model asset filesizes from my engine, in MB. It also includes a bit of serialization data, and meshlet culling data.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Model</th>
+<th style="text-align:center">Initial</th>
+<th style="text-align:center">Packed Tris</th>
+<th style="text-align:center">Packed Tris + Verts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><em>Lucy</em></td>
+<td style="text-align:center">527.50</td>
+<td style="text-align:center">500.74</td>
+<td style="text-align:center">227.93</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Dragon</em></td>
+<td style="text-align:center">16.35</td>
+<td style="text-align:center">15.52</td>
+<td style="text-align:center">7.07</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Sponza</em></td>
+<td style="text-align:center">11.16</td>
+<td style="text-align:center">10.91</td>
+<td style="text-align:center">3.82</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Overlapping Spheres</em></td>
+<td style="text-align:center">0.22</td>
+<td style="text-align:center">0.22</td>
+<td style="text-align:center">0.07</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Rock</em></td>
+<td style="text-align:center">3.82</td>
+<td style="text-align:center">3.71</td>
+<td style="text-align:center">1.29</td>
+</tr>
+</tbody>
+</table>
+<p>The triangle data wasn&rsquo;t a huge savings, since it wasn&rsquo;t a massive amount of memory in the first place (we went from 3 bytes per triangle to 2 bytes per triangle). It&rsquo;s still nice to save, though. Also, the vertices for the Dragon and Lucy both only contain position and normal data, so their relative savings are a bit lower than the others with tangents and UVs.</p>
+<h3 id="speed">Speed<a hidden class="anchor" aria-hidden="true" href="#speed">#</a></h3>
+<p>These are the runtime numbers (in milliseconds) of the various scenes. All timings are from my desktop that has an AMD 7900XT gpu. They&rsquo;re acquired with vulkan timestamps, while the shader and memory clocks are set to constant frequencies in the Radeon Developer Panel.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Model</th>
+<th style="text-align:center">Initial</th>
+<th style="text-align:center">Packed Tris</th>
+<th style="text-align:center">Packed Tris + Verts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><em>Lucy</em></td>
+<td style="text-align:center">1.81</td>
+<td style="text-align:center">1.80</td>
+<td style="text-align:center">1.81</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Dragon</em></td>
+<td style="text-align:center">0.076</td>
+<td style="text-align:center">0.076</td>
+<td style="text-align:center">0.076</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Sponza</em></td>
+<td style="text-align:center">0.197</td>
+<td style="text-align:center">0.196</td>
+<td style="text-align:center">0.197</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Overlapping Spheres</em></td>
+<td style="text-align:center">13.29</td>
+<td style="text-align:center">12.83</td>
+<td style="text-align:center">12.89</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Rock</em></td>
+<td style="text-align:center">0.36</td>
+<td style="text-align:center">0.36</td>
+<td style="text-align:center">0.35</td>
+</tr>
+</tbody>
+</table>
+<p>As you can see, we get equal or better performance in most scenes. The &lsquo;Overlapping Spheres&rsquo; is a scene with the same sphere model placed 30,000 times at the position, just to give a scene where the cost is mostly from the mesh shader.</p>
+<h2 id="final-thoughts">Final Thoughts<a hidden class="anchor" aria-hidden="true" href="#final-thoughts">#</a></h2>
+<p>In the end, we saved an average of 63% memory per model, with the same or slightly better runtime performance. It&rsquo;s not too shabby for an overly cautious first attempt, but you can also see now how there is a lot of room for improvement. Still though, hopefully this article either introduces you to a few compression methods or gives you a few ideas of how to improve your own pipeline. Leave a comment if you&rsquo;d like; any and all feedback is welcome!</p>
+<script src="https://giscus.app/client.js"
+	data-repo="LiamTyler/LiamTyler.github.io"
+	data-repo-id="MDEwOlJlcG9zaXRvcnkxNTQ2ODg2MzY="
+	data-category="Announcements"
+	data-category-id="DIC_kwDOCThcfM4Ceb9L"
+	data-mapping="pathname"
+	data-strict="0"
+	data-reactions-enabled="1"
+	data-emit-metadata="0"
+	data-input-position="bottom"
+	data-theme="preferred_color_scheme"
+	data-lang="en"
+	data-loading="lazy"
+	crossorigin="anonymous"
+	async>
+</script>
+
+
+<script src="/lightbox-plus-jquery.js"></script>
+<script>
+    lightbox.option({
+      'resizeDuration': 0,
+      'wrapAround': true,
+	  'imageFadeDuration': 0
+    })
+</script>
+
+
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2024 <a href="https://liamtyler.github.io/">Liam&#39;s Graphics Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>
