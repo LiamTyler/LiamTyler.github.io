@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>In-depth Analysis of Octahedral Encoded Normals | Liam&#39;s Graphics Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?">
+<meta name="author" content="">
+<link rel="canonical" href="https://liamtyler.github.io/posts/octahedral_analysis/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://liamtyler.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://liamtyler.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://liamtyler.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://liamtyler.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://liamtyler.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://liamtyler.github.io/posts/octahedral_analysis/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)']]                  
+    }
+  };
+</script>
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1738KLC2DV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-1738KLC2DV', { 'anonymize_ip': false });
+}
+</script>
+<meta property="og:title" content="In-depth Analysis of Octahedral Encoded Normals" />
+<meta property="og:description" content="Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://liamtyler.github.io/posts/octahedral_analysis/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2025-01-30T00:00:00+00:00" />
+<meta property="article:modified_time" content="2025-01-30T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="In-depth Analysis of Octahedral Encoded Normals"/>
+<meta name="twitter:description" content="Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?"/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://liamtyler.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "In-depth Analysis of Octahedral Encoded Normals",
+      "item": "https://liamtyler.github.io/posts/octahedral_analysis/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "In-depth Analysis of Octahedral Encoded Normals",
+  "name": "In-depth Analysis of Octahedral Encoded Normals",
+  "description": "Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It\u0026rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?",
+  "keywords": [
+    
+  ],
+  "articleBody": " Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It’s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied? I ended up going down a rabbit hole exploring these questions and thought I would share what I learned along the way. All of the C++ code that was used in the making of this blog post can be found here.\nMeasuring The Error The octahedral encoding function takes in a unit length vec3, and returns a vec2 with values from [-1, 1]. Instead of storing two floats, those values are usually then quantized to save space. How many bits should you use when quantizing? Most people just default to 16 bits (8 for each value), but how much error does that give? How does it change as the bit length changes? Well, we can measure that! If we take a unit vector and process it (encode, quantize, and decode), we can then get the angular difference between these two vectors using arc cosine to see how closely they match. If we do that for a million random unit vectors, we can get a good idea of the mean and max angular error for each bit length:\nBits X Bits Y Mean Error Max Error 7 7 0.703610 1.905714 8 8 0.350526 0.946480 9 9 0.174814 0.473682 10 10 0.087357 0.235790 11 11 0.043663 0.117949 12 12 0.021842 0.058642 13 13 0.010909 0.029560 Error is measured in degrees. Values were quantized as unorms, using the standard round-to-nearest method. Float64 was used for the encoding and decoding because floating point error is noticeable above 22 bits otherwise.\rWe can see that increasing the bit length by one in each dimension (therefore quadrupling the total number of possible values), cuts both our mean and max error in half. We’re not required to choose the same number of bits for each dimension though. So what happens if we use a rectangular grid, instead of a square grid?\nBits X Bits Y Mean Error Max Error 8 8 0.350526 0.946480 9 8 0.273192 0.724812 10 8 0.246261 0.625927 11 8 0.237676 0.586377 9 9 0.174814 0.473682 We can see that 9 bits in X is only 22% better, instead of the 25% we would like. Increasing it further gives even more diminishing returns, and is also generally pointless: if you have space for 18 total bits, you should just use 9 for X and 9 for Y. If you have the space for an extra single bit, however, it is worth remembering you do get a decent error reduction from it.\nSo, we found the error and learned that square quantization grids give the best error reduction per bit. Is there any way we can do better, though? Often times compression algorithms have a tradeoff, where the longer you spend compressing, the better the error or compression ratio is. Is there an equivalent here? As it turns out, there is!\nPrecise encoding If we think about the encoding process, we map from a sphere to a folded-down octahedron \\(\\mathbb{R}^3 \\rightarrow \\mathbb{R}^2\\), and then we quantize to integers with our given bit length \\(\\mathbb{R}^2 \\rightarrow \\mathbb{Z}^2\\). Both of these steps introduce error, though the total error is almost always dominated by the quantization error (\\(\\mathbb{R}^2 \\rightarrow \\mathbb{Z}^2\\)). The standard way to quantize and dequantize a unorm float x with a bit length of b is as follows:\n\\[\r\\begin{aligned}\ruint\\ \\ m \u0026= (1u \u003c\u003c b) - 1u;\\\\\ruint\\ \\ q \u0026= (uint)( x * m + 0.5f );\\\\\rfloat\\ \\ d \u0026= quantized / (float)m;\r\\end{aligned}\r\\] There are some alternate ways to do it, but they all share the same issue here: they are trying to minimize the error from \\(\\mathbb{R}^2 \\rightarrow \\mathbb{Z}^2 \\rightarrow \\mathbb{R}^2\\). What we want to minimize, however, is the angular error after the entire encode and decode process. By quantizing without taking the original vector into account, particularly the step where we blindly round to the nearest integer, we are adding more error. So, instead of blindly rounding, we could choose between the floor and ceil operators based on the round-trip angular error in both dimensions. The code for this is in octahedral_encoding.cpp::OctEncodeUNorm_P here for reference. So what error does this now give us?\nEncoding Mean Error Max Error 16 0.350526 0.946480 16P 0.327725 0.631641 18 0.174814 0.473682 18P 0.163475 0.315057 20 0.087357 0.235790 20P 0.081684 0.158212 The Encoding column shows the total number of bits used for both dimensions, each dimension getting half. The rows with the P suffix are using the precise encoding.\rWe can see that the mean error goes down by ~6.5%, and the max error goes down by ~33%, for all bit lengths. That’s pretty substantial! The best part is that decoding this variant is the exact same as before, so the only performance loss is on the encoding side of things, which can often be done offline anyway.\nNote: I learned about this precise encoding variant from this 2014 survey paper, so full credit to those authors. It’s a great paper that compares multiple unit vector representations, including octahedral. I’ll discuss the paper’s findings more at the end of this post.\nQualitatively Measuring error While having exact error numbers is great, they aren’t the most helpful by themselves. We have no frame of reference to know how much error is too much. Unfortunately, the only real way to figure that out is to visualize it and judge it for yourself. I made a shadertoy demo here to do just that. It lets you adjust the bit length with the up and down arrows, and you can hold left mouse button to see precise encoding. Note: it helps to go fullscreen to see the artifacts.\nFor me, I can easily see the error at 16 bits, have a harder time at 18 bits (but can still see it), and don’t notice it at all starting at 20 bits. The bummer is that precise encoding isn’t ever quite enough to save bits. For example, I can still see the error at 18P, but not with standard 20. In the end, though, the bit length you choose can depend on many different factors and can vary from application to application. Perhaps for your content, 16 or 18 bits is already unnoticeable, especially with precise encoding. I find it helpful to at least have a general starting point though, knowing that I don’t notice artifacts once their average error is below roughly one-tenth of a degree.\nCompressing Further As always with compression, the never-ending question is, “Can we compress it further?” If we look at using octahedral encoding for a single unit vector, then the answer is: “No, not really.” But, what if we had a group of normals that roughly all pointed in the same direction? This is the exact scenario that came up while writing my last post on meshlet compression. If you’re not familiar with them, think of meshlets as tiny submeshes of a larger model. Usually, they’re created so that all of the triangles (usually 32 - 256) within that meshlet are very spatially coherent. The details aren’t important, all you need to know is that very often all of the normals within a meshlet will point in a similar direction.\nMy first attempt at exploiting this coherency was to find the 2D AABB of the meshlet’s normals in octahedral space. Hopefully that AABB would be small, and then we could use fewer bits for each normal within that meshlet. For example, imagine we would normally use 16 bits for octahedral normals, but we know that every normal within a meshlet encodes to values between [0.375, 0.625]. In that case, we really only need to store values between [0, 0.25] if we also save the meshlet’s offset (0.375). Since we only need to store a quarter of the values, we could lower the bit length from 8 to 6 in each dimension, saving 4 bits per normal, without any loss in precision.\nImmediately, however, we run into two issues:\nThe traditional octahedral encoding function maps the +Z axis to the center. This also means that the opposite axis, -Z, maps to the four corners. So any group of normals that faces mostly -Z will have a full-sized AABB. Even within the +Z hemisphere, it turns out the AABB is almost never small anyway! The first issue is easy to get around: you could rotate the normals after decoding, similar to normal mapping except on a per-meshlet tangent space. We normally already store the meshlet’s direction for culling anyway, so there is half of it. If that’s too expensive, another option is to change the encoding to center any of the 6 axes (+X, -X, +Y, -Y, +Z, -Z). You have to change the decoding step too, but it’s the same cost with whatever axis you pick. The code for these variants can be found here. If we visualize each of the 6 encodings, it would look like this:\n+Z\r+X\r+Y\r-Z\r-X\r-Y\rWith this, it opens up the option to pick the orientation that gives you the smallest AABB for each meshlet individually. Let’s talk about the second issue, though, where the AABB is rarely small anyway. The reason is a lot easier to see if we label the different triangles in the octa diagram:\nEven though we would like to save at least one bit if we’re restricted to the +Z hemisphere, we can’t: the diamond shape itself means that the AABB for +Z hemisphere alone is already full-sized, [0, 1]. On top of that, you can only save bits with this method if the AABB size is smaller than 0.5, so in practice it just doesn’t happen as often as I’d like. It does still save memory on average, but very little. So, is there anything we can do about this? Well, yes! If a diamond shape is bad, then why not avoid it in the first place?\nRotated Octahedron Encoding At the end of the day, mapping an octahedron down onto a 2D plane is really just fitting 8 triangles into a rectangle. There is no reason we have to place them to form this diamond shape. So, why not just tweak our encoding such that it rotates the diamond by 45 degrees and becomes a square? This is actually something people already do for octahedral environment maps, since usually only need the top hemisphere of an environment map. So how do we do that? Well, a 2D rotation is:\n\\[\r\\begin{aligned}\rx' \u0026= x*cos( \\theta ) - y*sin( \\theta )\\\\\ry' \u0026= x*sin( \\theta ) + y*cos( \\theta )\r\\end{aligned}\r\\] When we encode, we want to rotate by -45 degrees (or +45, it doesn’t matter), and then when we decode, we will do the opposite: \\[\r\\begin{aligned}\rx' \u0026= \\frac{\\sqrt{2}}{2} * (x + y)\\\\\ry' \u0026= \\frac{\\sqrt{2}}{2} * (-x + y)\r\\end{aligned}\r\\] We can actually ignore the \\(\\sqrt{2}/2\\) during the encoding step because it’s just a scalar, and we have to rescale the entire thing to be [0, 1] anyways. When we decode though, we will have to compensate by multiplying by \\(\\sqrt{2}/2\\) twice, which is just 0.5. So this will make the inner diamond a square, but what about the -Z hemisphere? Well, this will also make it a square, and we just need to offset it so that we store it next to the +Z hemisphere.\nSo the final encode and decode functions would look something like this:\nvec2 Encode( vec3 v ) { v = v / ( Abs( v.x ) + Abs( v.y ) + Abs( v.z ) ); vec2 oct; oct.x = v.x + v.y; oct.y = -v.x + v.y; if ( v.z \u003e 0 ) oct.x += 2; oct.x = 0.5f * oct.x - 0.5f; // from [-1,3] to [-1, 1] return 0.5f * oct + + 0.5f; // from [-1, 1] to [0, 1] } vec3 Decode( vec2 oct ) { float hemisphere = 1; oct.x *= 2; // [0, 2] if ( oct.x \u003e 1 ) { hemisphere = -1; oct.x -= 1; // [1, 2] -\u003e [0, 1] } vec2 octaPos = 2.0f * oct - 1.0f; // [0, 1] -\u003e [-1, 1] vec3 v; v.x = 0.5f * ( octaPos.x - octaPos.y ); v.y = 0.5f * ( octaPos.x + octaPos.y ); v.z = hemisphere * ( 1.0f - Abs( v.x ) - Abs( v.y ) ); return Normalize( v ); } If you know you only need the +Z hemisphere, then it gets simpler:\nvec2 Encode_Hemisphere( vec3 v ) { v = v / ( Abs( v.x ) + Abs( v.y ) + Abs( v.z ) ); vec2 oct; oct.x = v.x + v.y; oct.y = -v.x + v.y; return 0.5f * oct + + 0.5f; // from [-1, 1] to [0, 1] } vec3 Decode_Hemisphere( vec2 oct ) { vec2 octaPos = 2.0f * oct - 1.0f; // [0, 1] -\u003e [-1, 1] vec3 v; v.x = 0.5f * ( octaPos.x - octaPos.y ); v.y = 0.5f * ( octaPos.x + octaPos.y ); v.z = 1.0f - Abs( v.x ) - Abs( v.y ); return Normalize( v ); } The full encode function would give you a diagram like this, with the +Z hemisphere on the left, and the -Z on the right:\nThis is good! We slightly increased the decoding cost, but now our AABBs can be smaller as well. Since we’ve changed the encoding and decoding math a bit, let’s double-check what the error is now, though.\nMeasuring Rotational Error Running our rotated variant through the same random vectors as before, we get:\nEncoding Mean Error Max Error 14R 0.773113 1.984227 16R 0.385242 0.986854 18R 0.192359 0.492528 20R 0.096009 0.246419 22R 0.047993 0.123342 The R suffix means rotational encoding.\rWe see that the mean error has increased by 10%, and the max error by 4.5% compared to the non-rotated encoding. This makes some amount of sense– we saw earlier that if the grid wasn’t a perfect square, the error increased. While we are evenly dividing the bits here, the diagram itself is now a rectangle, so it’s not too surprising the error increased a little. What if we only use the upper hemisphere though?\nEncoding Mean Error Max Error 14RH 0.501312 1.099875 16RH 0.249797 0.546843 18RH 0.124669 0.273832 20RH 0.062234 0.136537 22RH 0.031113 0.068080 The H suffix means hemispherical encoding.\rNow the mean error has dropped by 29% and the max error by 42%! That’s enough to potentially lower the bit count: regular encoding with 18 bits was already hard to notice, so using 18RH could potentially be good enough to not notice at all. Let’s see how much using precise encoding improves things too:\nEncoding Mean Error Max Error 14RH 0.501312 1.099875 14RHP 0.499686 1.099736 16RH 0.249797 0.546843 16RHP 0.249003 0.546843 18RH 0.124669 0.273832 18RHP 0.124272 0.273814 Wait… what? It basically doesn’t help at all, outside a handful of normals? “Surely I just have a bug somewhere,” I told myself and spent a long time looking for a bug. Nothing was popping out at me though, and any checks I did seemed correct. Finally, I did an exhaustive search: change the encoder to loop over every single possible encoding (2^16) and pick the best one. The result? The same thing. There is no bug, it just doesn’t improve things much for rotated octahedral. To understand why this is the case, we need to dig deeper into the error distribution.\nA Hard Look At Precise Encodings Let’s visualize the error for the regular encoding. We’ll generate millions of unit vectors, find their max error after encoding decoding, and then splat them onto an image using their encoded position as the UV coordinate (pre-quantization):\nThis image is 512 x 512, using 18-bit encoding, which means that one texel covers one quantized value or “cell”. What if we wanted to visualize the error within a single quantized cell though? Many vectors will be quantized to the same cell, with varying errors. To see that, let’s drop the encoding to 10-bit so that each quantized cell will map to a 16 x 16 square of texels:\nWe can see that the error is lowest along the diagonals of each cell, forming a sort of diagonal oval shape. This makes some sense– it’s following the same diamond shape as the rest of the encoding. The further you move from that, the higher the error is. Now, let’s visualize what happens if we turn on precise encoding, still with 10-bits:\nClick on the image, and use the left and right arrow keys to flip between the two images. You’ll notice that within a cell, the corners that were previously very bright are now much dimmer, while the already dark centers of each cell stay the same. Why is that? Well, if a vector encodes into the dark oval of a cell, then it already has low error. Moving to a neighboring cell would only increase the error, and since it’s already as low as it can be, it makes sense it doesn’t change color. But if a vector has high encoding error? Then it can be better to use a neighboring quantized value (move to an adjacent cell) instead, if its dark (low error) oval is close to that vector’s original texel. That’s the key piece– it will only benefit moving to a neighboring cell if it’s aligned with that cell’s low-error region (dark oval).\nConfusing? Let’s visualize this. We define the movement as the difference between the precise and regular texel coordinates. We can assign each of these movements a different color, and we get the following:\nIt’s exactly what we would expect: texels that are already in the dark oval region never move, but texels that are bright will move to the closest dark oval they’re neighboring! We also see that we never get diagonal movement, because the texels diagonally are always bright too. Now, the whole point of this was to figure out why rotational precise encoding doesn’t work, so let’s try visualizing rotational error:\nSeems totally fine, what about when we try to visualize the error within each cell again?\nAnd here lies the problem! See the orientation of the dark ovals within each cell? They are no longer diagonal. This means that when precise encoding is looking for neighbors with lower error, it won’t find any. Previously, the fact that the ovals were diagonal meant that bright pixels in the corners of each quantization cell always had some neighboring dark oval that was touching them. With rotational encoding though, the ovals don’t reach the corners at all. So the bright pixels at the edges of quantized cells only border other bright pixels, meaning they will rarely move to a different neighbor because they’re bad too. What I initially thought was a bug in my programming turned out to just be something inherent in the rotation itself: rotating the encoding also rotates the error distribution away from the corners, which was the only reason it worked so well with non-rotational encoding.\nThe Slight Sticking Point With all of this, there is one thing that irks me something fierce. That 2014 survey paper I mentioned earlier? It actually measures the error of octahedral encoding, among others. The issue? I cannot replicate their numbers for octahedral encoding for the life of me. It’s close: the average mean error I get is 4-4.5% higher than what the paper reports. This is true regardless of whether using precise encoding or not. I’ve followed the paper’s steps the best I can, and I’ve tried so many different things: different random number generators, float64 vs float32, different quantization methods, unorm vs snorm, different compiler flags, the supplemental code provided by the authors themselves, and more. All of it to no avail.\nSide note: the code they provide for the non-precise encode function is fine. The code they provide for precise encoding though, has 2 bugs in it, so the numbers make no sense until you fix those. Upon fixing them though, it still matches my own code at 4.5% higher\nIt gets weirder too: it’s only the octahedral mean error numbers I cannot recreate. With the same framework, the octahedral max error I get is within \\(\\pm\\) 0.6%, and other methods like spherical encoding match perfectly. So, I don’t know what to make of that. I think my error analysis still stands on its own, and the encodings are very much usable. I just wish it matched what the paper reported too.\nConclusion So we’ve found the error quantitatively and qualitatively for octahedral encoding. We learned there is a precise encoding variant that helps reduce the max error moderately and reduces the mean error modestly. We figured out how to rotate the encoding to help save space when we only care about one hemisphere, and showed why precise encoding doesn’t work for rotated encodings. We also learned that while people default to encoding the +Z axis in the center, we can choose any of the 6 axes.\nThat ended up being a lot longer than I thought! Hopefully you learned a few things in there, though. Leave a comment if you have any questions or want to chat about this!\n",
+  "wordCount" : "3603",
+  "inLanguage": "en",
+  "datePublished": "2025-01-30T00:00:00Z",
+  "dateModified": "2025-01-30T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://liamtyler.github.io/posts/octahedral_analysis/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Liam's Graphics Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://liamtyler.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://liamtyler.github.io/" accesskey="h" title="Liam&#39;s Graphics Blog (Alt + H)">Liam&#39;s Graphics Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://liamtyler.github.io/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://liamtyler.github.io/about/" title="About">
+                    <span>About</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://liamtyler.github.io/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      In-depth Analysis of Octahedral Encoded Normals
+    </h1>
+    <div class="post-meta"><span title='2025-01-30 00:00:00 +0000 UTC'>January 30, 2025</span>
+
+</div>
+  </header> 
+  <div class="post-content">
+
+
+<div style="text-align: center">
+  <img
+    src="/octahedral_analysis/octahedral_process.png"
+    alt="A figure showing octahedron encoding. It maps a sphere to an octahedron, then flattens the octahedron onto a 2D plane."
+    decoding="async"
+  />
+</div>
+
+
+
+  <link href="/lightbox.css" rel="stylesheet" />
+  <link href="/custom_css.css" rel="stylesheet" />
+
+
+<p>Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on <a href="https://liamtyler.github.io/posts/meshlet_compression/">meshlet compression</a>, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied? I ended up going down a rabbit hole exploring these questions and thought I would share what I learned along the way. All of the C++ code that was used in the making of this blog post can be found <a href="https://github.com/LiamTyler/OctahedralAnalysis">here</a>.</p>
+<h2 id="measuring-the-error">Measuring The Error<a hidden class="anchor" aria-hidden="true" href="#measuring-the-error">#</a></h2>
+<p>The octahedral encoding function takes in a unit length vec3, and returns a vec2 with values from [-1, 1]. Instead of storing two floats, those values are usually then quantized to save space. How many bits should you use when quantizing? Most people just default to 16 bits (8 for each value), but how much error does that give? How does it change as the bit length changes? Well, we can measure that! If we take a unit vector and process it (encode, quantize, and decode), we can then get the angular difference between these two vectors using arc cosine to see how closely they match. If we do that for a million random unit vectors, we can get a good idea of the mean and max angular error for each bit length:</p>
+
+
+
+
+<table style="display: inline-table">
+<thead>
+<tr>
+<th style="text-align:center">Bits X</th>
+<th style="text-align:center">Bits Y</th>
+<th style="text-align:center">Mean Error</th>
+<th style="text-align:center">Max Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">7</td>
+<td style="text-align:center">7</td>
+<td style="text-align:center">0.703610</td>
+<td style="text-align:center">1.905714</td>
+</tr>
+<tr>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">0.350526</td>
+<td style="text-align:center">0.946480</td>
+</tr>
+<tr>
+<td style="text-align:center">9</td>
+<td style="text-align:center">9</td>
+<td style="text-align:center">0.174814</td>
+<td style="text-align:center">0.473682</td>
+</tr>
+<tr>
+<td style="text-align:center">10</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">0.087357</td>
+<td style="text-align:center">0.235790</td>
+</tr>
+<tr>
+<td style="text-align:center">11</td>
+<td style="text-align:center">11</td>
+<td style="text-align:center">0.043663</td>
+<td style="text-align:center">0.117949</td>
+</tr>
+<tr>
+<td style="text-align:center">12</td>
+<td style="text-align:center">12</td>
+<td style="text-align:center">0.021842</td>
+<td style="text-align:center">0.058642</td>
+</tr>
+<tr>
+<td style="text-align:center">13</td>
+<td style="text-align:center">13</td>
+<td style="text-align:center">0.010909</td>
+<td style="text-align:center">0.029560</td>
+</tr>
+</tbody>
+</table>
+
+
+
+<i style="text-align: center; display: block">Error is measured in degrees. Values were quantized as unorms, using the standard round-to-nearest method. Float64 was used for the encoding and decoding because floating point error is noticeable above 22 bits otherwise.</i>
+<br> 
+
+
+<p>We can see that increasing the bit length by one in each dimension (therefore quadrupling the total number of possible values), cuts both our mean and max error in half. We&rsquo;re not required to choose the same number of bits for each dimension though. So what happens if we use a rectangular grid, instead of a square grid?</p>
+
+
+
+
+<table style="display: inline-table">
+<thead>
+<tr>
+<th style="text-align:center">Bits X</th>
+<th style="text-align:center">Bits Y</th>
+<th style="text-align:center">Mean Error</th>
+<th style="text-align:center">Max Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">0.350526</td>
+<td style="text-align:center">0.946480</td>
+</tr>
+<tr>
+<td style="text-align:center">9</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">0.273192</td>
+<td style="text-align:center">0.724812</td>
+</tr>
+<tr>
+<td style="text-align:center">10</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">0.246261</td>
+<td style="text-align:center">0.625927</td>
+</tr>
+<tr>
+<td style="text-align:center">11</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">0.237676</td>
+<td style="text-align:center">0.586377</td>
+</tr>
+<tr>
+<td style="text-align:center">9</td>
+<td style="text-align:center">9</td>
+<td style="text-align:center">0.174814</td>
+<td style="text-align:center">0.473682</td>
+</tr>
+</tbody>
+</table>
+
+<p>We can see that 9 bits in X is only 22% better, instead of the 25% we would like. Increasing it further gives even more diminishing returns, and is also generally pointless: if you have space for 18 total bits, you should just use 9 for X and 9 for Y. If you have the space for an extra single bit, however, it is worth remembering you do get a decent error reduction from it.</p>
+<p>So, we found the error and learned that square quantization grids give the best error reduction per bit. Is there any way we can do better, though? Often times compression algorithms have a tradeoff, where the longer you spend compressing, the better the error or compression ratio is. Is there an equivalent here? As it turns out, there is!</p>
+<h3 id="precise-encoding">Precise encoding<a hidden class="anchor" aria-hidden="true" href="#precise-encoding">#</a></h3>
+<p>If we think about the encoding process, we map from a sphere to a folded-down octahedron \(\mathbb{R}^3 \rightarrow \mathbb{R}^2\), and then we quantize to integers with our given bit length \(\mathbb{R}^2 \rightarrow \mathbb{Z}^2\). Both of these steps introduce error, though the total error is almost always dominated by the quantization error (\(\mathbb{R}^2 \rightarrow \mathbb{Z}^2\)). The standard way to quantize and dequantize a unorm float <code>x</code> with a bit length of <code>b</code> is as follows:</p>
+\[
+\begin{aligned}
+uint\ \ m &= (1u << b) - 1u;\\
+uint\ \ q &= (uint)( x * m + 0.5f );\\
+float\ \ d &= quantized / (float)m;
+\end{aligned}
+\]
+<p>There are some alternate ways to do it, but they all share the same issue here: they are trying to minimize the error from \(\mathbb{R}^2 \rightarrow \mathbb{Z}^2 \rightarrow \mathbb{R}^2\). What we want to minimize, however, is the angular error after the entire encode and decode process. By quantizing without taking the original vector into account, particularly the step where we blindly round to the nearest integer, we are adding more error. So, instead of blindly rounding, we could choose between the floor and ceil operators based on the round-trip angular error in both dimensions. The code for this is in <code>octahedral_encoding.cpp::OctEncodeUNorm_P</code> <a href="https://github.com/LiamTyler/OctahedralAnalysis/blob/main/code/octahedral_encoding.cpp#L161">here</a> for reference. So what error does this now give us?</p>
+
+
+
+
+<table style="display: inline-table">
+<thead>
+<tr>
+<th style="text-align:center">Encoding</th>
+<th style="text-align:center">Mean Error</th>
+<th style="text-align:center">Max Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">16</td>
+<td style="text-align:center">0.350526</td>
+<td style="text-align:center">0.946480</td>
+</tr>
+<tr>
+<td style="text-align:center">16<strong>P</strong></td>
+<td style="text-align:center">0.327725</td>
+<td style="text-align:center">0.631641</td>
+</tr>
+<tr>
+<td style="text-align:center">18</td>
+<td style="text-align:center">0.174814</td>
+<td style="text-align:center">0.473682</td>
+</tr>
+<tr>
+<td style="text-align:center">18<strong>P</strong></td>
+<td style="text-align:center">0.163475</td>
+<td style="text-align:center">0.315057</td>
+</tr>
+<tr>
+<td style="text-align:center">20</td>
+<td style="text-align:center">0.087357</td>
+<td style="text-align:center">0.235790</td>
+</tr>
+<tr>
+<td style="text-align:center">20<strong>P</strong></td>
+<td style="text-align:center">0.081684</td>
+<td style="text-align:center">0.158212</td>
+</tr>
+</tbody>
+</table>
+
+
+
+<i style="text-align: center; display: block">The Encoding column shows the total number of bits used for both dimensions, each dimension getting half. The rows with the <b>P</b> suffix are using the precise encoding.</i>
+<br> 
+
+
+<p>We can see that the mean error goes down by ~6.5%, and the max error goes down by ~33%, for all bit lengths. That&rsquo;s pretty substantial! The best part is that decoding this variant is the exact same as before, so the only performance loss is on the encoding side of things, which can often be done offline anyway.</p>
+<p><em>Note: I learned about this precise encoding variant from this <a href="https://jcgt.org/published/0003/02/01/">2014 survey paper</a>, so full credit to those authors. It&rsquo;s a great paper that compares multiple unit vector representations, including octahedral. I&rsquo;ll discuss the paper&rsquo;s findings more at the end of this post.</em></p>
+<h3 id="qualitatively-measuring-error">Qualitatively Measuring error<a hidden class="anchor" aria-hidden="true" href="#qualitatively-measuring-error">#</a></h3>
+<p>While having exact error numbers is great, they aren&rsquo;t the most helpful by themselves. We have no frame of reference to know how much error is too much. Unfortunately, the only real way to figure that out is to visualize it and judge it for yourself. I made a shadertoy demo <a href="https://www.shadertoy.com/view/lcKBWK">here</a> to do just that. It lets you adjust the bit length with the up and down arrows, and you can hold left mouse button to see precise encoding. Note: it helps to go fullscreen to see the artifacts.</p>
+<p>For me, I can easily see the error at 16 bits, have a harder time at 18 bits (but can still see it), and don&rsquo;t notice it at all starting at 20 bits. The bummer is that precise encoding isn&rsquo;t ever quite enough to save bits. For example, I can still see the error at 18<strong>P</strong>, but not with standard 20. In the end, though, the bit length you choose can depend on many different factors and can vary from application to application. Perhaps for your content, 16 or 18 bits is already unnoticeable, especially with precise encoding. I find it helpful to at least have a general starting point though, knowing that I don&rsquo;t notice artifacts once their average error is below roughly one-tenth of a degree.</p>
+<h2 id="compressing-further">Compressing Further<a hidden class="anchor" aria-hidden="true" href="#compressing-further">#</a></h2>
+<p>As always with compression, the never-ending question is, &ldquo;Can we compress it further?&rdquo; If we look at using octahedral encoding for a single unit vector, then the answer is: &ldquo;No, not really.&rdquo; But, what if we had a group of normals that roughly all pointed in the same direction? This is the exact scenario that came up while writing my last post on meshlet compression. If you&rsquo;re not familiar with them, think of meshlets as tiny submeshes of a larger model. Usually, they&rsquo;re created so that all of the triangles (usually 32 - 256) within that meshlet are very spatially coherent. The details aren&rsquo;t important, all you need to know is that very often all of the normals within a meshlet will point in a similar direction.</p>
+<p>My first attempt at exploiting this coherency was to find the 2D AABB of the meshlet&rsquo;s normals in octahedral space. Hopefully that AABB would be small, and then we could use fewer bits for each normal within that meshlet. For example, imagine we would normally use 16 bits for octahedral normals, but we know that every normal within a meshlet encodes to values between [0.375, 0.625]. In that case, we really only need to store values between [0, 0.25] if we also save the meshlet&rsquo;s offset (0.375). Since we only need to store a quarter of the values, we could lower the bit length from 8 to 6 in each dimension, saving 4 bits per normal, without any loss in precision.</p>
+
+
+
+<div style="text-align: center">
+  <img
+    src="/octahedral_analysis/octa_aabb.jpg"
+    alt="An overlay of a small 2D AABB on an octahedral diagram that only takes a small portion of the diagram, showing opportunities to save memory."
+    decoding="async"
+  />
+</div>
+
+<p>Immediately, however, we run into two issues:</p>
+<ol>
+<li>The traditional octahedral encoding function maps the +Z axis to the center. This also means that the opposite axis, -Z, maps to the four corners. So any group of normals that faces mostly -Z will have a full-sized AABB.</li>
+<li>Even within the +Z hemisphere, it turns out the AABB is almost never small anyway!</li>
+</ol>
+<p>The first issue is easy to get around: you could rotate the normals after decoding, similar to normal mapping except on a per-meshlet tangent space. We normally already store the meshlet&rsquo;s direction for culling anyway, so there is half of it. If that&rsquo;s too expensive, another option is to change the encoding to center any of the 6 axes (+X, -X, +Y, -Y, +Z, -Z). You have to change the decoding step too, but it&rsquo;s the same cost with whatever axis you pick. The code for these variants can be found <a href="https://github.com/LiamTyler/OctahedralAnalysis/blob/main/code/octahedral_encoding.cpp#L59">here</a>. If we visualize each of the 6 encodings, it would look like this:</p>
+
+
+<div class="row3LT" style="text-align: center; text-decoration: none; margin: 0">
+  <div class="column3LT">
+  <figure style="margin: 0; margin-bottom: 5px">
+      <img src="/octahedral_analysis/Z_Up.jpg"/>
+      <figcaption style="margin: 0">+Z</figcaption>
+    </figure>
+  </div>
+  <div class="column3LT">
+  <figure style="margin: 0; margin-bottom: 5px">
+      <img src="/octahedral_analysis/X_Up.jpg"/>
+      <figcaption style="margin: 0">+X</figcaption>
+    </figure>
+  </div>
+  <div class="column3LT">
+  <figure style="margin: 0; margin-bottom: 5px">
+      <img src="/octahedral_analysis/Y_Up.jpg"/>
+      <figcaption style="margin: 0">+Y</figcaption>
+    </figure>
+  </div>
+</div>
+
+<div class="row3LT" style="text-align: center; text-decoration: none; margin: 0">
+  <div class="column3LT">
+  <figure style="margin: 0; margin-bottom: 5px">
+      <img src="/octahedral_analysis/Z_Down.jpg"/>
+      <figcaption style="margin: 0">-Z</figcaption>
+    </figure>
+  </div>
+  <div class="column3LT">
+  <figure style="margin: 0; margin-bottom: 5px">
+      <img src="/octahedral_analysis/X_Down.jpg"/>
+      <figcaption style="margin: 0">-X</figcaption>
+    </figure>
+  </div>
+  <div class="column3LT">
+  <figure style="margin: 0; margin-bottom: 5px">
+      <img src="/octahedral_analysis/Y_Down.jpg"/>
+      <figcaption style="margin: 0">-Y</figcaption>
+    </figure>
+  </div>
+</div>
+
+
+<p>With this, it opens up the option to pick the orientation that gives you the smallest AABB for each meshlet individually. Let&rsquo;s talk about the second issue, though, where the AABB is rarely small anyway. The reason is a lot easier to see if we label the different triangles in the octa diagram:</p>
+
+
+
+<div style="text-align: center">
+  <img
+    src="/octahedral_analysis/octa_labeled_z_up.jpg"
+    alt="The octahedral diagram, showing the 4 interior triangles belonging to the &#43;Z hemisphere, while the -Z hemisphere has the outer 4."
+    decoding="async"
+  />
+</div>
+
+<p>Even though we would like to save at least one bit if we&rsquo;re restricted to the +Z hemisphere, we can&rsquo;t: the diamond shape itself means that the AABB for +Z hemisphere alone is already full-sized, [0, 1]. On top of that, you can only save bits with this method if the AABB size is smaller than 0.5, so in practice it just doesn&rsquo;t happen as often as I&rsquo;d like. It does still save memory on average, but very little. So, is there anything we can do about this? Well, yes! If a diamond shape is bad, then why not avoid it in the first place?</p>
+<h2 id="rotated-octahedron-encoding">Rotated Octahedron Encoding<a hidden class="anchor" aria-hidden="true" href="#rotated-octahedron-encoding">#</a></h2>
+<p>At the end of the day, mapping an octahedron down onto a 2D plane is really just fitting 8 triangles into a rectangle. There is no reason we have to place them to form this diamond shape. So, why not just tweak our encoding such that it rotates the diamond by 45 degrees and becomes a square? This is actually something people already do for octahedral environment maps, since usually only need the top hemisphere of an environment map. So how do we do that? Well, a 2D rotation is:</p>
+\[
+\begin{aligned}
+x' &= x*cos( \theta ) - y*sin( \theta )\\
+y' &= x*sin( \theta ) + y*cos( \theta )
+\end{aligned}
+\]
+<p>When we encode, we want to rotate by -45 degrees (or +45, it doesn&rsquo;t matter), and then when we decode, we will do the opposite:
+</p>
+\[
+\begin{aligned}
+x' &= \frac{\sqrt{2}}{2} * (x + y)\\
+y' &= \frac{\sqrt{2}}{2} * (-x + y)
+\end{aligned}
+\]
+<p>We can actually ignore the \(\sqrt{2}/2\) during the encoding step because it&rsquo;s just a scalar, and we have to rescale the entire thing to be [0, 1] anyways. When we decode though, we will have to compensate by multiplying by \(\sqrt{2}/2\) twice, which is just 0.5. So this will make the inner diamond a square, but what about the -Z hemisphere? Well, this will also make it a square, and we just need to offset it so that we store it next to the +Z hemisphere.</p>
+<p>So the final encode and decode functions would look something like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span>vec2 <span style="color:#a6e22e">Encode</span>( vec3 v )
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    v <span style="color:#f92672">=</span> v <span style="color:#f92672">/</span> ( Abs( v.x ) <span style="color:#f92672">+</span> Abs( v.y ) <span style="color:#f92672">+</span> Abs( v.z ) );
+</span></span><span style="display:flex;"><span>    vec2 oct;
+</span></span><span style="display:flex;"><span>    oct.x <span style="color:#f92672">=</span> v.x <span style="color:#f92672">+</span> v.y;
+</span></span><span style="display:flex;"><span>    oct.y <span style="color:#f92672">=</span> <span style="color:#f92672">-</span>v.x <span style="color:#f92672">+</span> v.y;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> ( v.z <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> )
+</span></span><span style="display:flex;"><span>        oct.x <span style="color:#f92672">+=</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>    oct.x <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5f</span> <span style="color:#f92672">*</span> oct.x <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.5f</span>; <span style="color:#75715e">// from [-1,3] to [-1, 1]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0.5f</span> <span style="color:#f92672">*</span> oct <span style="color:#f92672">+</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.5f</span>; <span style="color:#75715e">// from [-1, 1] to [0, 1]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>vec3 <span style="color:#a6e22e">Decode</span>( vec2 oct )
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">float</span> hemisphere <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>    oct.x <span style="color:#f92672">*=</span> <span style="color:#ae81ff">2</span>; <span style="color:#75715e">// [0, 2]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> ( oct.x <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">1</span> )
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        hemisphere <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        oct.x <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">// [1, 2] -&gt; [0, 1]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }
+</span></span><span style="display:flex;"><span>    vec2 octaPos <span style="color:#f92672">=</span> <span style="color:#ae81ff">2.0f</span> <span style="color:#f92672">*</span> oct <span style="color:#f92672">-</span> <span style="color:#ae81ff">1.0f</span>; <span style="color:#75715e">// [0, 1] -&gt; [-1, 1]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    vec3 v;
+</span></span><span style="display:flex;"><span>    v.x <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5f</span> <span style="color:#f92672">*</span> ( octaPos.x <span style="color:#f92672">-</span> octaPos.y );
+</span></span><span style="display:flex;"><span>    v.y <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5f</span> <span style="color:#f92672">*</span> ( octaPos.x <span style="color:#f92672">+</span> octaPos.y );
+</span></span><span style="display:flex;"><span>    v.z <span style="color:#f92672">=</span> hemisphere <span style="color:#f92672">*</span> ( <span style="color:#ae81ff">1.0f</span> <span style="color:#f92672">-</span> Abs( v.x ) <span style="color:#f92672">-</span> Abs( v.y ) );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Normalize( v );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>If you know you only need the +Z hemisphere, then it gets simpler:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span>vec2 <span style="color:#a6e22e">Encode_Hemisphere</span>( vec3 v )
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    v <span style="color:#f92672">=</span> v <span style="color:#f92672">/</span> ( Abs( v.x ) <span style="color:#f92672">+</span> Abs( v.y ) <span style="color:#f92672">+</span> Abs( v.z ) );
+</span></span><span style="display:flex;"><span>    vec2 oct;
+</span></span><span style="display:flex;"><span>    oct.x <span style="color:#f92672">=</span> v.x <span style="color:#f92672">+</span> v.y;
+</span></span><span style="display:flex;"><span>    oct.y <span style="color:#f92672">=</span> <span style="color:#f92672">-</span>v.x <span style="color:#f92672">+</span> v.y;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0.5f</span> <span style="color:#f92672">*</span> oct <span style="color:#f92672">+</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.5f</span>; <span style="color:#75715e">// from [-1, 1] to [0, 1]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>vec3 <span style="color:#a6e22e">Decode_Hemisphere</span>( vec2 oct )
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    vec2 octaPos <span style="color:#f92672">=</span> <span style="color:#ae81ff">2.0f</span> <span style="color:#f92672">*</span> oct <span style="color:#f92672">-</span> <span style="color:#ae81ff">1.0f</span>; <span style="color:#75715e">// [0, 1] -&gt; [-1, 1]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    vec3 v;
+</span></span><span style="display:flex;"><span>    v.x <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5f</span> <span style="color:#f92672">*</span> ( octaPos.x <span style="color:#f92672">-</span> octaPos.y );
+</span></span><span style="display:flex;"><span>    v.y <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5f</span> <span style="color:#f92672">*</span> ( octaPos.x <span style="color:#f92672">+</span> octaPos.y );
+</span></span><span style="display:flex;"><span>    v.z <span style="color:#f92672">=</span> <span style="color:#ae81ff">1.0f</span> <span style="color:#f92672">-</span> Abs( v.x ) <span style="color:#f92672">-</span> Abs( v.y );
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Normalize( v );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The full encode function would give you a diagram like this, with the +Z hemisphere on the left, and the -Z on the right:</p>
+
+
+
+<div style="text-align: center">
+  <img
+    src="/octahedral_analysis/Z_Up_rotated.jpg"
+    alt="The rotated octahedral diagram, where the &#43;Z hemisphere forms a square on the left, and the -Z hemisphere forms a square on the right."
+    decoding="async"
+  />
+</div>
+
+<p>This is good! We slightly increased the decoding cost, but now our AABBs can be smaller as well. Since we&rsquo;ve changed the encoding and decoding math a bit, let&rsquo;s double-check what the error is now, though.</p>
+<h3 id="measuring-rotational-error">Measuring Rotational Error<a hidden class="anchor" aria-hidden="true" href="#measuring-rotational-error">#</a></h3>
+<p>Running our rotated variant through the same random vectors as before, we get:</p>
+<p>
+
+
+
+<table style="display: inline-table">
+<thead>
+<tr>
+<th style="text-align:center">Encoding</th>
+<th style="text-align:center">Mean Error</th>
+<th style="text-align:center">Max Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">14<strong>R</strong></td>
+<td style="text-align:center">0.773113</td>
+<td style="text-align:center">1.984227</td>
+</tr>
+<tr>
+<td style="text-align:center">16<strong>R</strong></td>
+<td style="text-align:center">0.385242</td>
+<td style="text-align:center">0.986854</td>
+</tr>
+<tr>
+<td style="text-align:center">18<strong>R</strong></td>
+<td style="text-align:center">0.192359</td>
+<td style="text-align:center">0.492528</td>
+</tr>
+<tr>
+<td style="text-align:center">20<strong>R</strong></td>
+<td style="text-align:center">0.096009</td>
+<td style="text-align:center">0.246419</td>
+</tr>
+<tr>
+<td style="text-align:center">22<strong>R</strong></td>
+<td style="text-align:center">0.047993</td>
+<td style="text-align:center">0.123342</td>
+</tr>
+</tbody>
+</table>
+
+
+
+<i style="text-align: center; display: block">The <b>R</b> suffix means rotational encoding.</i>
+<br> 
+
+</p>
+<p>We see that the mean error has increased by 10%, and the max error by 4.5% compared to the non-rotated encoding. This makes some amount of sense&ndash; we saw earlier that if the grid wasn&rsquo;t a perfect square, the error increased. While we are evenly dividing the bits here, the diagram itself is now a rectangle, so it&rsquo;s not too surprising the error increased a little. What if we only use the upper hemisphere though?</p>
+
+
+
+
+<table style="display: inline-table">
+<thead>
+<tr>
+<th style="text-align:center">Encoding</th>
+<th style="text-align:center">Mean Error</th>
+<th style="text-align:center">Max Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">14<strong>RH</strong></td>
+<td style="text-align:center">0.501312</td>
+<td style="text-align:center">1.099875</td>
+</tr>
+<tr>
+<td style="text-align:center">16<strong>RH</strong></td>
+<td style="text-align:center">0.249797</td>
+<td style="text-align:center">0.546843</td>
+</tr>
+<tr>
+<td style="text-align:center">18<strong>RH</strong></td>
+<td style="text-align:center">0.124669</td>
+<td style="text-align:center">0.273832</td>
+</tr>
+<tr>
+<td style="text-align:center">20<strong>RH</strong></td>
+<td style="text-align:center">0.062234</td>
+<td style="text-align:center">0.136537</td>
+</tr>
+<tr>
+<td style="text-align:center">22<strong>RH</strong></td>
+<td style="text-align:center">0.031113</td>
+<td style="text-align:center">0.068080</td>
+</tr>
+</tbody>
+</table>
+
+
+
+<i style="text-align: center; display: block">The <b>H</b> suffix means hemispherical encoding.</i>
+<br> 
+
+
+<p>Now the mean error has dropped by 29% and the max error by 42%! That&rsquo;s enough to potentially lower the bit count: regular encoding with 18 bits was already hard to notice, so using 18<strong>RH</strong> could potentially be good enough to not notice at all. Let&rsquo;s see how much using precise encoding improves things too:</p>
+
+
+
+
+<table style="display: inline-table">
+<thead>
+<tr>
+<th style="text-align:center">Encoding</th>
+<th style="text-align:center">Mean Error</th>
+<th style="text-align:center">Max Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">14<strong>RH</strong></td>
+<td style="text-align:center">0.501312</td>
+<td style="text-align:center">1.099875</td>
+</tr>
+<tr>
+<td style="text-align:center">14<strong>RHP</strong></td>
+<td style="text-align:center">0.499686</td>
+<td style="text-align:center">1.099736</td>
+</tr>
+<tr>
+<td style="text-align:center">16<strong>RH</strong></td>
+<td style="text-align:center">0.249797</td>
+<td style="text-align:center">0.546843</td>
+</tr>
+<tr>
+<td style="text-align:center">16<strong>RHP</strong></td>
+<td style="text-align:center">0.249003</td>
+<td style="text-align:center">0.546843</td>
+</tr>
+<tr>
+<td style="text-align:center">18<strong>RH</strong></td>
+<td style="text-align:center">0.124669</td>
+<td style="text-align:center">0.273832</td>
+</tr>
+<tr>
+<td style="text-align:center">18<strong>RHP</strong></td>
+<td style="text-align:center">0.124272</td>
+<td style="text-align:center">0.273814</td>
+</tr>
+</tbody>
+</table>
+
+<p>Wait&hellip; what? It basically doesn&rsquo;t help at all, outside a handful of normals? &ldquo;Surely I just have a bug somewhere,&rdquo; I told myself and spent a long time looking for a bug. Nothing was popping out at me though, and any checks I did seemed correct. Finally, I did an exhaustive search: change the encoder to loop over every single possible encoding (2^16) and pick the best one. The result? The same thing. There is no bug, it just doesn&rsquo;t improve things much for rotated octahedral. To understand why this is the case, we need to dig deeper into the error distribution.</p>
+<h2 id="a-hard-look-at-precise-encodings">A Hard Look At Precise Encodings<a hidden class="anchor" aria-hidden="true" href="#a-hard-look-at-precise-encodings">#</a></h2>
+<p>Let&rsquo;s visualize the error for the regular encoding. We&rsquo;ll generate millions of unit vectors, find their max error after encoding decoding, and then splat them onto an image using their encoded position as the UV coordinate (pre-quantization):</p>
+
+
+
+
+
+
+<div style="text-align: center">
+  <a href="/octahedral_analysis/error_18_512.jpg" data-lightbox="error" data-title="" style="color: inherit; text-decoration: none; margin: 0">
+    <figure style="margin: 0; margin-bottom: 5px">
+      <img
+        src="/octahedral_analysis/error_18_512.jpg"
+		alt="Octahedral max error diagram. The error increases the further you get from the octahedron edges."
+        decoding="async"
+	
+		style="margin: 0;"
+	
+      />
+      <figcaption style="margin: 0"></figcaption>
+    </figure>
+  </a>
+</div>
+
+<p>This image is 512 x 512, using 18-bit encoding, which means that one texel covers one quantized value or &ldquo;cell&rdquo;. What if we wanted to visualize the error within a single quantized cell though? Many vectors will be quantized to the same cell, with varying errors. To see that, let&rsquo;s drop the encoding to 10-bit so that each quantized cell will map to a 16 x 16 square of texels:</p>
+
+
+
+
+
+
+<div style="text-align: center">
+  <a href="/octahedral_analysis/error_10_512.jpg" data-lightbox="error" data-title="" style="color: inherit; text-decoration: none; margin: 0">
+    <figure style="margin: 0; margin-bottom: 5px">
+      <img
+        src="/octahedral_analysis/error_10_512.jpg"
+		alt="Octahedral max error diagram zoomed in. The error within a quantization cell is lower along the diagonal, following the diamond shape."
+        decoding="async"
+	
+		style="margin: 0;"
+	
+      />
+      <figcaption style="margin: 0"></figcaption>
+    </figure>
+  </a>
+</div>
+
+<p>We can see that the error is lowest along the diagonals of each cell, forming a sort of diagonal oval shape. This makes some sense&ndash; it&rsquo;s following the same diamond shape as the rest of the encoding. The further you move from that, the higher the error is. Now, let&rsquo;s visualize what happens if we turn on precise encoding, still with 10-bits:</p>
+
+
+
+
+
+
+<div style="text-align: center">
+  <a href="/octahedral_analysis/error_p_10_512.jpg" data-lightbox="error" data-title="" style="color: inherit; text-decoration: none; margin: 0">
+    <figure style="margin: 0; margin-bottom: 5px">
+      <img
+        src="/octahedral_analysis/error_p_10_512.jpg"
+		alt="Octahedral max error diagram with precse encoding. All of the high error values at the edges of each quantization cell have been lowered (are darker)."
+        decoding="async"
+	
+		style="margin: 0;"
+	
+      />
+      <figcaption style="margin: 0"></figcaption>
+    </figure>
+  </a>
+</div>
+
+<p>Click on the image, and use the left and right arrow keys to flip between the two images. You&rsquo;ll notice that within a cell, the corners that were previously very bright are now much dimmer, while the already dark centers of each cell stay the same. Why is that? Well, if a vector encodes into the dark oval of a cell, then it already has low error. Moving to a neighboring cell would only increase the error, and since it&rsquo;s already as low as it can be, it makes sense it doesn&rsquo;t change color. But if a vector has high encoding error? Then it can be better to use a neighboring quantized value (move to an adjacent cell) instead, <em>if its dark (low error) oval is close to that vector&rsquo;s original texel</em>. That&rsquo;s the key piece&ndash; it will only benefit moving to a neighboring cell if it&rsquo;s aligned with that cell&rsquo;s low-error region (dark oval).</p>
+<p>Confusing? Let&rsquo;s visualize this. We define the movement as the difference between the precise and regular texel coordinates. We can assign each of these movements a different color, and we get the following:</p>
+
+
+
+
+
+
+<div style="text-align: center">
+  <a href="/octahedral_analysis/error_movement_combined.jpg" data-lightbox="error" data-title="" style="color: inherit; text-decoration: none; margin: 0">
+    <figure style="margin: 0; margin-bottom: 5px">
+      <img
+        src="/octahedral_analysis/error_movement_combined.jpg"
+		alt="Visualization showing that the bright and high error values at the edges of a quantization cell move to their nearest neighbor that has a low error region touching that cell."
+        decoding="async"
+	
+		style="margin: 0;"
+	
+      />
+      <figcaption style="margin: 0"></figcaption>
+    </figure>
+  </a>
+</div>
+
+<p>It&rsquo;s exactly what we would expect: texels that are already in the dark oval region never move, but texels that are bright will move to the closest dark oval they&rsquo;re neighboring! We also see that we never get diagonal movement, because the texels diagonally are always bright too. Now, the whole point of this was to figure out why rotational precise encoding doesn&rsquo;t work, so let&rsquo;s try visualizing rotational error:</p>
+
+
+
+
+
+
+<div style="text-align: center">
+  <a href="/octahedral_analysis/error_rotated_h_18_512.jpg" data-lightbox="error" data-title="" style="color: inherit; text-decoration: none; margin: 0">
+    <figure style="margin: 0; margin-bottom: 5px">
+      <img
+        src="/octahedral_analysis/error_rotated_h_18_512.jpg"
+		alt="Octahedral max error diagram for rotational encoding. Once again the error increases the further you get from the octahedron edges."
+        decoding="async"
+	
+		style="margin: 0;"
+	
+      />
+      <figcaption style="margin: 0"></figcaption>
+    </figure>
+  </a>
+</div>
+
+<p>Seems totally fine, what about when we try to visualize the error within each cell again?</p>
+
+
+
+
+
+
+<div style="text-align: center">
+  <a href="/octahedral_analysis/error_rotated_h_10_512.jpg" data-lightbox="error" data-title="" style="color: inherit; text-decoration: none; margin: 0">
+    <figure style="margin: 0; margin-bottom: 5px">
+      <img
+        src="/octahedral_analysis/error_rotated_h_10_512.jpg"
+		alt=""
+        decoding="async"
+	
+		style="margin: 0;"
+	
+      />
+      <figcaption style="margin: 0"></figcaption>
+    </figure>
+  </a>
+</div>
+
+<p>And here lies the problem! See the orientation of the dark ovals within each cell? They are no longer diagonal. This means that when precise encoding is looking for neighbors with lower error, it won&rsquo;t find any. Previously, the fact that the ovals were diagonal meant that bright pixels in the corners of each quantization cell always had some neighboring dark oval that was touching them. With rotational encoding though, the ovals don&rsquo;t reach the corners at all. So the bright pixels at the edges of quantized cells only border other bright pixels, meaning they will rarely move to a different neighbor because they&rsquo;re bad too. What I initially thought was a bug in my programming turned out to just be something inherent in the rotation itself: rotating the encoding also rotates the error distribution away from the corners, which was the only reason it worked so well with non-rotational encoding.</p>
+<h3 id="the-slight-sticking-point">The Slight Sticking Point<a hidden class="anchor" aria-hidden="true" href="#the-slight-sticking-point">#</a></h3>
+<p>With all of this, there is one thing that irks me something fierce. That <a href="https://jcgt.org/published/0003/02/01/">2014 survey paper</a> I mentioned earlier? It actually measures the error of octahedral encoding, among others. The issue? I cannot replicate their numbers for octahedral encoding for the life of me. It&rsquo;s close: the average mean error I get is 4-4.5% higher than what the paper reports. This is true regardless of whether using precise encoding or not. I&rsquo;ve followed the paper&rsquo;s steps the best I can, and I&rsquo;ve tried so many different things: different random number generators, float64 vs float32, different quantization methods, unorm vs snorm, different compiler flags, <strong>the supplemental code provided by the authors themselves</strong>, and more. All of it to no avail.</p>
+<p><em>Side note: the code they provide for the non-precise encode function is fine. The code they provide for precise encoding though, has 2 bugs in it, so the numbers make no sense until you fix those. Upon fixing them though, it still matches my own code at 4.5% higher</em></p>
+<p>It gets weirder too: it&rsquo;s only the octahedral mean error numbers I cannot recreate. With the same framework, the octahedral max error I get is within \(\pm\) 0.6%, and other methods like spherical encoding match perfectly. So, I don&rsquo;t know what to make of that. I think my error analysis still stands on its own, and the encodings are very much usable. I just wish it matched what the paper reported too.</p>
+<h2 id="conclusion">Conclusion<a hidden class="anchor" aria-hidden="true" href="#conclusion">#</a></h2>
+<p>So we&rsquo;ve found the error quantitatively and qualitatively for octahedral encoding. We learned there is a precise encoding variant that helps reduce the max error moderately and reduces the mean error modestly. We figured out how to rotate the encoding to help save space when we only care about one hemisphere, and showed why precise encoding doesn&rsquo;t work for rotated encodings. We also learned that while people default to encoding the +Z axis in the center, we can choose any of the 6 axes.</p>
+<p>That ended up being a lot longer than I thought! Hopefully you learned a few things in there, though. Leave a comment if you have any questions or want to chat about this!</p>
+<script src="https://giscus.app/client.js"
+	data-repo="LiamTyler/LiamTyler.github.io"
+	data-repo-id="MDEwOlJlcG9zaXRvcnkxNTQ2ODg2MzY="
+	data-category="Announcements"
+	data-category-id="DIC_kwDOCThcfM4Ceb9L"
+	data-mapping="pathname"
+	data-strict="0"
+	data-reactions-enabled="1"
+	data-emit-metadata="0"
+	data-input-position="bottom"
+	data-theme="preferred_color_scheme"
+	data-lang="en"
+	data-loading="lazy"
+	crossorigin="anonymous"
+	async>
+</script>
+
+
+<script src="/lightbox-plus-jquery.js"></script>
+<script>
+    lightbox.option({
+      'resizeDuration': 0,
+      'wrapAround': true,
+	  'imageFadeDuration': 0
+    })
+</script>
+
+
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2025 <a href="https://liamtyler.github.io/">Liam&#39;s Graphics Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>

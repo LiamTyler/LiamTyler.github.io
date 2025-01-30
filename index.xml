@@ -6,8 +6,15 @@
     <description>Recent content on Liam&#39;s Graphics Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 20 Dec 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 30 Jan 2025 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://liamtyler.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>In-depth Analysis of Octahedral Encoded Normals</title>
+      <link>https://liamtyler.github.io/posts/octahedral_analysis/</link>
+      <pubDate>Thu, 30 Jan 2025 00:00:00 +0000</pubDate>
+      <guid>https://liamtyler.github.io/posts/octahedral_analysis/</guid>
+      <description>Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&amp;rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?</description>
+    </item>
     <item>
       <title>Basic Meshlet Compression</title>
       <link>https://liamtyler.github.io/posts/meshlet_compression/</link>
