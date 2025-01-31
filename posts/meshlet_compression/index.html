@@ -7,7 +7,7 @@
 <meta name="robots" content="index, follow">
 <title>Basic Meshlet Compression | Liam&#39;s Graphics Blog</title>
 <meta name="keywords" content="">
-<meta name="description" content="Mesh shaders have become increasingly popular over the last few years with UE5&rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods.">
+<meta name="description" content="Meshlets and mesh shaders are super popular now, but how should you optimize and compress that data? Let&#39;s walkthrough concretely how to do it in C&#43;&#43;.">
 <meta name="author" content="">
 <link rel="canonical" href="https://liamtyler.github.io/posts/meshlet_compression/">
 <link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
@@ -79,7 +79,7 @@ if (!doNotTrack) {
 }
 </script>
 <meta property="og:title" content="Basic Meshlet Compression" />
-<meta property="og:description" content="Mesh shaders have become increasingly popular over the last few years with UE5&rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods." />
+<meta property="og:description" content="Meshlets and mesh shaders are super popular now, but how should you optimize and compress that data? Let&#39;s walkthrough concretely how to do it in C&#43;&#43;." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://liamtyler.github.io/posts/meshlet_compression/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2024-12-20T00:00:00+00:00" />
@@ -87,7 +87,7 @@ if (!doNotTrack) {
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Basic Meshlet Compression"/>
-<meta name="twitter:description" content="Mesh shaders have become increasingly popular over the last few years with UE5&rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods."/>
+<meta name="twitter:description" content="Meshlets and mesh shaders are super popular now, but how should you optimize and compress that data? Let&#39;s walkthrough concretely how to do it in C&#43;&#43;."/>
 
 
 <script type="application/ld+json">
@@ -116,7 +116,7 @@ if (!doNotTrack) {
   "@type": "BlogPosting",
   "headline": "Basic Meshlet Compression",
   "name": "Basic Meshlet Compression",
-  "description": "Mesh shaders have become increasingly popular over the last few years with UE5\u0026rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren\u0026rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it\u0026rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods.",
+  "description": "Meshlets and mesh shaders are super popular now, but how should you optimize and compress that data? Let's walkthrough concretely how to do it in C++.",
   "keywords": [
     
   ],

@@ -5,9 +5,9 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="index, follow">
-<title>Asset Pipelines Part 1 | Liam&#39;s Graphics Blog</title>
+<title>Implementing an Asset Pipeline Part 1 | Liam&#39;s Graphics Blog</title>
 <meta name="keywords" content="">
-<meta name="description" content="Asset pipelines are one of the pieces of game development I don&rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &ldquo;convert your assets into binary packages, compress them, and load them at runtime,&rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&rsquo;d argue it has the single biggest impact on development.">
+<meta name="description" content="Even for personal projects, serialized asset pipelines are incredibly helpful, but not talked about often. I&#39;ll walkthrough my asset pipeline with all of the C&#43;&#43; code.">
 <meta name="author" content="">
 <link rel="canonical" href="https://liamtyler.github.io/posts/asset_pipeline_part_1/">
 <link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
@@ -78,16 +78,16 @@ if (!doNotTrack) {
 	gtag('config', 'G-1738KLC2DV', { 'anonymize_ip': false });
 }
 </script>
-<meta property="og:title" content="Asset Pipelines Part 1" />
-<meta property="og:description" content="Asset pipelines are one of the pieces of game development I don&rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &ldquo;convert your assets into binary packages, compress them, and load them at runtime,&rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&rsquo;d argue it has the single biggest impact on development." />
+<meta property="og:title" content="Implementing an Asset Pipeline Part 1" />
+<meta property="og:description" content="Even for personal projects, serialized asset pipelines are incredibly helpful, but not talked about often. I&#39;ll walkthrough my asset pipeline with all of the C&#43;&#43; code." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://liamtyler.github.io/posts/asset_pipeline_part_1/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2024-07-07T00:00:00+00:00" />
 <meta property="article:modified_time" content="2024-07-07T00:00:00+00:00" />
 
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Asset Pipelines Part 1"/>
-<meta name="twitter:description" content="Asset pipelines are one of the pieces of game development I don&rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &ldquo;convert your assets into binary packages, compress them, and load them at runtime,&rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&rsquo;d argue it has the single biggest impact on development."/>
+<meta name="twitter:title" content="Implementing an Asset Pipeline Part 1"/>
+<meta name="twitter:description" content="Even for personal projects, serialized asset pipelines are incredibly helpful, but not talked about often. I&#39;ll walkthrough my asset pipeline with all of the C&#43;&#43; code."/>
 
 
 <script type="application/ld+json">
@@ -104,7 +104,7 @@ if (!doNotTrack) {
     {
       "@type": "ListItem",
       "position":  2 ,
-      "name": "Asset Pipelines Part 1",
+      "name": "Implementing an Asset Pipeline Part 1",
       "item": "https://liamtyler.github.io/posts/asset_pipeline_part_1/"
     }
   ]
@@ -114,9 +114,9 @@ if (!doNotTrack) {
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "Asset Pipelines Part 1",
-  "name": "Asset Pipelines Part 1",
-  "description": "Asset pipelines are one of the pieces of game development I don\u0026rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: \u0026ldquo;convert your assets into binary packages, compress them, and load them at runtime,\u0026rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I\u0026rsquo;d argue it has the single biggest impact on development.",
+  "headline": "Implementing an Asset Pipeline Part 1",
+  "name": "Implementing an Asset Pipeline Part 1",
+  "description": "Even for personal projects, serialized asset pipelines are incredibly helpful, but not talked about often. I'll walkthrough my asset pipeline with all of the C++ code.",
   "keywords": [
     
   ],
@@ -205,7 +205,7 @@ if (!doNotTrack) {
   <header class="post-header">
     
     <h1 class="post-title entry-hint-parent">
-      Asset Pipelines Part 1
+      Implementing an Asset Pipeline Part 1
     </h1>
     <div class="post-meta"><span title='2024-07-07 00:00:00 +0000 UTC'>July 7, 2024</span>
 

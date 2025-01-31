@@ -5,9 +5,9 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="index, follow">
-<title>In-depth Analysis of Octahedral Encoded Normals | Liam&#39;s Graphics Blog</title>
+<title>Analyzing Octahedral Encoded Normals | Liam&#39;s Graphics Blog</title>
 <meta name="keywords" content="">
-<meta name="description" content="Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?">
+<meta name="description" content="Octahedron encoding for normals is very popular, but most people only scratch the surface. Let&#39;s dive into some cool extensions of it and analyze its error.">
 <meta name="author" content="">
 <link rel="canonical" href="https://liamtyler.github.io/posts/octahedral_analysis/">
 <link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
@@ -78,16 +78,16 @@ if (!doNotTrack) {
 	gtag('config', 'G-1738KLC2DV', { 'anonymize_ip': false });
 }
 </script>
-<meta property="og:title" content="In-depth Analysis of Octahedral Encoded Normals" />
-<meta property="og:description" content="Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?" />
+<meta property="og:title" content="Analyzing Octahedral Encoded Normals" />
+<meta property="og:description" content="Octahedron encoding for normals is very popular, but most people only scratch the surface. Let&#39;s dive into some cool extensions of it and analyze its error." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://liamtyler.github.io/posts/octahedral_analysis/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2025-01-30T00:00:00+00:00" />
 <meta property="article:modified_time" content="2025-01-30T00:00:00+00:00" />
 
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="In-depth Analysis of Octahedral Encoded Normals"/>
-<meta name="twitter:description" content="Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?"/>
+<meta name="twitter:title" content="Analyzing Octahedral Encoded Normals"/>
+<meta name="twitter:description" content="Octahedron encoding for normals is very popular, but most people only scratch the surface. Let&#39;s dive into some cool extensions of it and analyze its error."/>
 
 
 <script type="application/ld+json">
@@ -104,7 +104,7 @@ if (!doNotTrack) {
     {
       "@type": "ListItem",
       "position":  2 ,
-      "name": "In-depth Analysis of Octahedral Encoded Normals",
+      "name": "Analyzing Octahedral Encoded Normals",
       "item": "https://liamtyler.github.io/posts/octahedral_analysis/"
     }
   ]
@@ -114,9 +114,9 @@ if (!doNotTrack) {
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "In-depth Analysis of Octahedral Encoded Normals",
-  "name": "In-depth Analysis of Octahedral Encoded Normals",
-  "description": "Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It\u0026rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?",
+  "headline": "Analyzing Octahedral Encoded Normals",
+  "name": "Analyzing Octahedral Encoded Normals",
+  "description": "Octahedron encoding for normals is very popular, but most people only scratch the surface. Let's dive into some cool extensions of it and analyze its error.",
   "keywords": [
     
   ],
@@ -205,7 +205,7 @@ if (!doNotTrack) {
   <header class="post-header">
     
     <h1 class="post-title entry-hint-parent">
-      In-depth Analysis of Octahedral Encoded Normals
+      Analyzing Octahedral Encoded Normals
     </h1>
     <div class="post-meta"><span title='2025-01-30 00:00:00 +0000 UTC'>January 30, 2025</span>
 

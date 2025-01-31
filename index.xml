@@ -9,18 +9,18 @@
     <lastBuildDate>Thu, 30 Jan 2025 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://liamtyler.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>In-depth Analysis of Octahedral Encoded Normals</title>
+      <title>Analyzing Octahedral Encoded Normals</title>
       <link>https://liamtyler.github.io/posts/octahedral_analysis/</link>
       <pubDate>Thu, 30 Jan 2025 00:00:00 +0000</pubDate>
       <guid>https://liamtyler.github.io/posts/octahedral_analysis/</guid>
-      <description>Octahedron encoding (also called octahedral encoding) is a very popular way to encode normals. It&amp;rsquo;s fast to encode, very fast to decode, has near uniform mapping, and has low error. While writing my last post on meshlet compression, I spent a lot of time looking at that final aspect, the low error. I had three questions I wanted answered: what is the error quantitatively, can that be used to help select the quantization level, and can any further compression be applied?</description>
+      <description>Octahedron encoding for normals is very popular, but most people only scratch the surface. Let&amp;#39;s dive into some cool extensions of it and analyze its error.</description>
     </item>
     <item>
       <title>Basic Meshlet Compression</title>
       <link>https://liamtyler.github.io/posts/meshlet_compression/</link>
       <pubDate>Fri, 20 Dec 2024 00:00:00 +0000</pubDate>
       <guid>https://liamtyler.github.io/posts/meshlet_compression/</guid>
-      <description>Mesh shaders have become increasingly popular over the last few years with UE5&amp;rsquo;s Nanite, and games like Alan Wake II. With that popularity came a wave of articles discussing how to write basic mesh shaders, and the pros and cons of different vertex and triangle limits. Those are all great, but I noticed there aren&amp;rsquo;t that many sources discussing how you might compress meshlet vertex and triangle data. The sources that do discuss the compression often gloss over details, whether it&amp;rsquo;s implementation details, how likely people are to notice the quantization, runtime performance, or discussion of alternative methods.</description>
+      <description>Meshlets and mesh shaders are super popular now, but how should you optimize and compress that data? Let&amp;#39;s walkthrough concretely how to do it in C&#43;&#43;.</description>
     </item>
     <item>
       <title>About Me</title>
@@ -35,21 +35,21 @@ In terms of experience: I started doing graphics personally and in school in 201
       <link>https://liamtyler.github.io/posts/task_graph/</link>
       <pubDate>Sat, 27 Jul 2024 00:00:00 +0000</pubDate>
       <guid>https://liamtyler.github.io/posts/task_graph/</guid>
-      <description>Render Graphs, or &amp;ldquo;Task Graphs,&amp;rdquo; rapidly became the standard in the industry ever since Yuriy O&amp;rsquo;Donnell&amp;rsquo;s 2017 GDC presentation on Frostbite&amp;rsquo;s FrameGraph. They provide many benefits, like handling all of the synchronization barriers and resource transitions, reordering tasks for increased performance, reducing memory usage via resource aliasing, and the list goes on for miles. They’re nearly mandatory for large projects these days, given how verbose and error-prone these things would be if done manually with modern APIs like Vulkan and DX12.</description>
+      <description>Implementing a render graph doesn&amp;#39;t need to be daunting. Here&amp;#39;s a full walkthrough of my at-home render graph, with all the code included.</description>
     </item>
     <item>
-      <title>Asset Pipelines Part 1</title>
+      <title>Implementing an Asset Pipeline Part 1</title>
       <link>https://liamtyler.github.io/posts/asset_pipeline_part_1/</link>
       <pubDate>Sun, 07 Jul 2024 00:00:00 +0000</pubDate>
       <guid>https://liamtyler.github.io/posts/asset_pipeline_part_1/</guid>
-      <description>Asset pipelines are one of the pieces of game development I don&amp;rsquo;t see people talk about very often. The main concepts are often introduced and chatted about theoretically, sure: &amp;ldquo;convert your assets into binary packages, compress them, and load them at runtime,&amp;rdquo; but rarely do I find people chatting about the implementation details. It always strikes me as a little odd, because I&amp;rsquo;d argue it has the single biggest impact on development.</description>
+      <description>Even for personal projects, serialized asset pipelines are incredibly helpful, but not talked about often. I&amp;#39;ll walkthrough my asset pipeline with all of the C&#43;&#43; code.</description>
     </item>
     <item>
-      <title>Generating Height Maps From Normal Maps</title>
+      <title>Normal Map To Height Map Generation</title>
       <link>https://liamtyler.github.io/posts/normal-to-height/</link>
       <pubDate>Fri, 05 Apr 2024 00:00:00 +0000</pubDate>
       <guid>https://liamtyler.github.io/posts/normal-to-height/</guid>
-      <description>In this post, I want to explain how to take a normal map and generate its corresponding height map (also called displacement map). There are multiple ways to achieve this, but the one I&amp;rsquo;ll be covering in this post is the method that Danny Chan presented in Advances in Real Time Rendering at Siggraph 2018 (link here, page 16). It&amp;rsquo;s also the same method that the Call of Duty engine still uses today to generate the vast majority of its height maps.</description>
+      <description>Full walkthrough of how to generate a height map (displacement map) from a normal map in C&#43;&#43;, using a method presented in Siggraph 2018.</description>
     </item>
   </channel>
 </rss>
